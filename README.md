@@ -76,5 +76,18 @@ apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivi
 参考[How to install Android SDK Build Tools on the command line?](http://stackoverflow.com/questions/17963508/how-to-install-android-sdk-build-tools-on-the-command-line)
 使用了过高版本的 `getbuildtools`。推荐使用25.0.2版本
 
+	wget https://dl.google.com/android/repository/tools_r25.2.3-linux.zip
+	unzip tools_r25.2.3-linux.zip 
 	android list sdk --all #See Availiable downloads
 	tools/android update sdk -u -a -t 1,2,5,21,39,45
+	## create hello world
+	mkdir test_project
+	cd test_project
+	android create project \
+	    --target 1 \
+	    --name MyName \
+	    --path . \
+	    --activity MyActivity \
+	    --package com.yourdomain.yourproject
+
+	ant debug
