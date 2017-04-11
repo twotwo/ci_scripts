@@ -79,7 +79,7 @@ apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivi
 	wget https://dl.google.com/android/repository/tools_r25.2.3-linux.zip
 	unzip tools_r25.2.3-linux.zip 
 	android list sdk --all #See Availiable downloads
-	tools/android update sdk -u -a -t 1,2,5,17,21,38,39,45
+	tools/android update sdk -u -a -t 1,2,5,35
 	## create hello world
 	mkdir test_project
 	cd test_project
