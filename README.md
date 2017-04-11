@@ -49,19 +49,21 @@ APK build script
 
  * [build android.library.reference](http://stackoverflow.com/questions/21265111/android-ant-build-fails-with-google-play-services-lib-resolve-to-a-path-with)
  
-### [[javac]]   (use -source 7 or higher to enable multi-catch statement)
+### [[javac]] (use -source 7 or higher to enable multi-catch statement)
  
  	➜  base cat ant.properties 
-	java.source=1.8
-	java.target=1.8
+	java.source=1.7
+	java.target=1.7
 
 ### [[dx]] Exception in thread "main" java.lang.UnsupportedClassVersionError: com/android/dx/command/Main : Unsupported major.minor version 52.0
  
  * [Unable to build Android - Unsupported class file version 52.0](https://github.com/soomla/unity3d-store/issues/541)
+ * [ant.properties file config](http://stackoverflow.com/questions/18051917/ant-properties-file-missing-in-android-project)
 
 ## app运行时错误的解决
 
 ### 无法加载主类
+参考[How to specify multiple source directory for Android library project](http://stackoverflow.com/questions/14605899/how-to-specify-multiple-source-directory-for-android-library-project)
 apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivity。
 
 搜索工程目录，发现MainActivity没有放到src目录下。
@@ -71,6 +73,8 @@ apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivi
 	ant.properties中指定 source.dir=src; test
 	
 ### adb install Failure: INSTALL_FAILED_DEXOPT
+参考[How to install Android SDK Build Tools on the command line?](http://stackoverflow.com/questions/17963508/how-to-install-android-sdk-build-tools-on-the-command-line)
 使用了过高版本的 `getbuildtools`。推荐使用25.0.2版本
 
-	android update sdk -u -t 1,2,5
+	android list sdk --all #See Availiable downloads
+	tools/android update sdk -u -a -t 1,2,5,21,39,45
