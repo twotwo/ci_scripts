@@ -23,7 +23,14 @@ APK build script
 	➜  my_android android update project -p .
 	Updated local.properties
 	Updated file ./proguard-project.txt
- 
+
+### 添加配置参数
+
+	cat ant.properties 
+	java.source=1.7
+	java.target=1.7
+	source.dir=src; test
+
 ### 打包
 
 	➜  my_android android update project -p .
@@ -36,7 +43,7 @@ APK build script
 	➜  my_android adb install bin/sdk_res-debug.apk
 
 
-## ant运行时错误的解决
+## ant执行错误的解决
  
 ### resolve to a path with no project.properties file for project
 
@@ -52,3 +59,18 @@ APK build script
  
  * [Unable to build Android - Unsupported class file version 52.0](https://github.com/soomla/unity3d-store/issues/541)
 
+## app运行时错误的解决
+
+### 无法加载主类
+apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivity。
+
+搜索工程目录，发现MainActivity没有放到src目录下。
+
+解决方案：
+
+	ant.properties中指定 source.dir=src; test
+	
+### adb install Failure: INSTALL_FAILED_DEXOPT
+使用了过高版本的 `getbuildtools`。推荐使用25.0.2版本
+
+	android update sdk -u -t 1,2,5
