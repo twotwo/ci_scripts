@@ -11,12 +11,35 @@ APK build script
  
 ## 基于Android CLT的编译、打包及安装
 
-### 本地环境变量
+### 本地环境
 
+	vi ~/.bash_profile 
 	JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_20.jdk/Contents/Home
 	ANT_HOME=/opt/local/tools/java/ant/apache-ant-1.8.0
 	ANDROID_HOME=/opt/app/android/sdk
 	PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANT_HOME/bin
+
+	# android工具安装
+	wget http://mirrors.tuna.tsinghua.edu.cn/apache//ant/binaries/apache-ant-1.10.1-bin.zip
+	unzip apache-ant-1.10.1-bin.zip
+
+	# android工具安装
+	wget https://dl.google.com/android/repository/tools_r25.2.3-linux.zip
+	unzip tools_r25.2.3-linux.zip 
+	android list sdk --all #See Availiable downloads
+	tools/android update sdk -u -a -t 1,2,5,35
+	
+	# create hello world，打包测试
+	mkdir test_project
+	cd test_project
+	android create project \
+	    --target 1 \
+	    --name MyName \
+	    --path . \
+	    --activity MyActivity \
+	    --package com.yourdomain.yourproject
+
+	ant debug
 
 ### 生成打包脚本
 
@@ -76,18 +99,5 @@ apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivi
 参考[How to install Android SDK Build Tools on the command line?](http://stackoverflow.com/questions/17963508/how-to-install-android-sdk-build-tools-on-the-command-line)
 使用了过高版本的 `getbuildtools`。推荐使用25.0.2版本
 
-	wget https://dl.google.com/android/repository/tools_r25.2.3-linux.zip
-	unzip tools_r25.2.3-linux.zip 
 	android list sdk --all #See Availiable downloads
 	tools/android update sdk -u -a -t 1,2,5,35
-	## create hello world
-	mkdir test_project
-	cd test_project
-	android create project \
-	    --target 1 \
-	    --name MyName \
-	    --path . \
-	    --activity MyActivity \
-	    --package com.yourdomain.yourproject
-
-	ant debug
