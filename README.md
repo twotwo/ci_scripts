@@ -101,3 +101,22 @@ apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivi
 
 	android list sdk --all #See Availiable downloads
 	tools/android update sdk -u -a -t 1,2,5,35
+### version `GLIBC_2.14' not found
+参考[分享Centos6.5升级glibc过程](https://cnodejs.org/topic/56dc21f1502596633dc2c3dc)
+
+错误提示如下
+
+    -code-gen:
+        [mergemanifest] No changes in the AndroidManifest files.
+         [echo] Handling aidl files...
+         [aidl] No AIDL files to compile.
+         [echo] ----------
+         [echo] Handling RenderScript files...
+         [echo] ----------
+         [echo] Handling Resources...
+         [aapt] Generating resource IDs...
+         [aapt] /var/lib/jenkins/android/build-tools/25.0.2/aapt: /lib64/libc.so.   6: version `GLIBC_2.14' not found (required by     /var/lib/jenkins/android/build-tools/25.0.2/aapt)
+         [aapt] /var/lib/jenkins/android/build-tools/25.0.2/aapt: /lib64/libc.so.   6: version `GLIBC_2.14' not found (required by     /var/lib/jenkins/android/build-tools/25.0.2/lib64/libc++.so)
+
+    LD_LIBRARY_PATH=/opt/glibc-2.14/lib
+    ln -sf /opt/glibc-2.14/lib/libc-2.14.so /lib64/libc.so.6
