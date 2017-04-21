@@ -118,5 +118,9 @@ apk安装后无法正常启动。用eclipse调试，提示没有找到MainActivi
          [aapt] /var/lib/jenkins/android/build-tools/25.0.2/aapt: /lib64/libc.so.   6: version `GLIBC_2.14' not found (required by     /var/lib/jenkins/android/build-tools/25.0.2/aapt)
          [aapt] /var/lib/jenkins/android/build-tools/25.0.2/aapt: /lib64/libc.so.   6: version `GLIBC_2.14' not found (required by     /var/lib/jenkins/android/build-tools/25.0.2/lib64/libc++.so)
 
-    LD_LIBRARY_PATH=/opt/glibc-2.14/lib
-    ln -sf /opt/glibc-2.14/lib/libc-2.14.so /lib64/libc.so.6
+    ## has busybox
+    # busybox ln -sf /opt/glibc-2.14/lib/libc-2.14.so /lib64/libc.so.6
+    # or
+    LD_PRELOAD=/opt/glibc-2.14/lib/libc-2.14.so ln -sf /opt/glibc-2.14/lib/libc-2.14.so /lib64/libc.so.6
+    # ll /lib64/libc.so*
+    lrwxrwxrwx 1 root root 32 Apr 21 07:55 /lib64/libc.so.6 -> /opt/glibc-2.14/lib/libc-2.14.so
