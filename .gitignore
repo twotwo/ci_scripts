@@ -1,4 +1,4 @@
-*.class
+build.log
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
