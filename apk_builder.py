@@ -45,7 +45,7 @@ class CommandUtil(object):
 			logging.debug(cmd)
 		out, err = process.communicate()
 		if len(err) > 0:
-			logging.error(cmd, err)
+			logging.error('cmd=%s, err=%s' %(cmd, err))
 		return (time.time()-start_point, out, err)
 
 	@staticmethod
@@ -62,6 +62,20 @@ class CommandUtil(object):
 		(cost, out, err) = CommandUtil.excute(cmd)
 		return out.strip('\n')
 
+	@staticmethod
+	def svn_ver(svn_dir):
+		"""pull the latest content and get version
+		git revision cmd: git rev-list --count HEAD
+		"""
+		cmd = 'svn up %s' % svn_dir
+		(cost, out, err) = CommandUtil.excute(cmd)
+		if len(err) > 0:
+			logging.error('excute[%s]: %s' %(cmd, err))
+			return
+		cmd = 'svn info %s -rHEAD | grep "Last Changed Rev" | cut -d" " -f4' % svn_dir
+		(cost, out, err) = CommandUtil.excute(cmd)
+		return out.strip('\n')
+
 
 def excute(cmd):
 	start_point = time.time()
@@ -74,49 +88,72 @@ def excute(cmd):
 	else:
 		return ('[ok]', cmd, err, out)
 
-def build_project(src, project, name, dist, library='CommonChannel'):
+def build_project_sdkagent(src, project, name, dist, library='CommonChannel'):
+	"""给svn中最新的适配代码打包
+	"""
 	# -l --library    : Directory of an Android library to add
 	logging.info( (src, project, name, library) )
-	os.chdir(src+'/'+project)
+	sa_dir = os.path.join(src, project)
+	# os.chdir(sa_dir)
 	logging.info('===== [%s] Build Start: %s ' % (project, os.getcwd()) )
 	start_point = time.time()
 
-	print excute('pwd')
-	print 'working on '+os.getcwd()
-	print excute('svn up')
+	revision = CommandUtil.svn_ver(sa_dir)
+	print 'build %s@r%s' % (sa_dir, revision)
+	# print excute('svn up')
 
+	print 'create android project ... '
+	cmd = 'android update project -p %s -n MainActivity -t android-21'%sa_dir
 	if library:
-		print excute('cp ../ant.properties .')
-		print excute('rm project.properties')
-		excute('android update project -l ../%s -p . -n MainActivity -t android-21' % library)
+		print CommandUtil.excute('cp ant.properties %s'%sa_dir)
+		print CommandUtil.excute('rm %s/project.properties'%sa_dir)
+		cmd = 'android update project -l ../%s -p %s -n MainActivity -t android-21' % (library, sa_dir)
 		# f = open('project.properties', 'w') #'r', 'w' or 'a'
 		# f.write(project_properties)
 		# f.close
 	 # -t --target     : Target ID to set for the project.
 	 # android-21 Name: Android 5.0.1
 	 # android-22 Name: Android 5.1.1
-	excute('android update project -p . -n MainActivity -t android-21')
-	
-	(status, cmd, err, out) = excute('ant -f build.xml clean debug')
-	print (status, cmd)
+	(cost, out, err) = CommandUtil.excute(cmd)
+	if len(err) > 0: 
+		status = '[failed]'
+		print status, cmd , err
+	else:
+		status = '[ok]'
+		print status, cmd
 
-	(s, c, err, revision) = excute('svn info -rHEAD | grep "Last Changed Rev" | cut -d" " -f4')
-	
+	print 'build android project ... '
+	cmd = 'ant -f %s/build.xml clean debug'%sa_dir
+	(cost, out, err) = CommandUtil.excute(cmd)
+	if len(err) > 0: 
+		status = '[failed]'
+		print status, cmd , err
+	else:
+		status = '[ok]'
+		print status, cmd
 
-	if '[ok]' == status:
-		print excute('cp bin/MainActivity-debug.apk ../%s/%s-r%s.apk' % (dist, name, revision.strip('\n')) )
+	# (s, c, err, revision) = excute('svn info -rHEAD | grep "Last Changed Rev" | cut -d" " -f4')
+
+	if '[ok]' == status and library:
+		print CommandUtil.excute('cp %s/bin/MainActivity-debug.apk %s/%s-r%s.apk' % (sa_dir, dist, name, revision.strip('\n')) )
 
 	logging.info('===== [%s] Build Over %s %s -r%s' % (project, time.time()-start_point, status, revision) )
 
-def build_channels(args):
+def build_demos(args):
+	"""sdk-agent适配各个渠道的demo，一锅出多个Android apk
+	python apk_builder.py -s /tmp/apk_builder/demo -d /tmp/apk_builder/demo_dist -c demo
+	"""
+	dist = args.dest
+	if not os.path.exists(dist):
+		excute('mkdir -p %s' % (dist) )
 	for project in src_prjects.split("\n"):
 		if len(project) == 0: continue
 		name = project
 		if len(project.split('_'))==4:
 			name = project.split('_')[2]
-			build_project(args.src, project, name, args.dest, args.lib)
+			build_project_sdkagent(args.src, project, name, dist, args.lib)
 		else:
-			build_project(args.src, project, name, args.dest, None)
+			build_project_sdkagent(args.src, project, name, dist, None)
 
 CHANNEL_LIST = 'az bd cp dj fl hw jl lx mz qh op uc vv xx yyb'
 def init_apks_dir(args):
@@ -271,9 +308,9 @@ qzgs_渠道编码-游戏包ID-插件版本号.apk
 	cmd_cp_apk = 'cp game/bin/%s %s'%(apk_name+'-release.apk', apk_to)
 	(cost, out, err) = CommandUtil.excute(cmd_cp_apk, args.dry_run)
 	# 在jenkins环境下
-	jenkins_mv(apk_to)
+	jenkins_mv(apk_to, args.dry_run)
 
-def jenkins_mv(apk_name):
+def jenkins_mv(apk_name, dry_run):
 	"""
 	"""
 	if None == os.environ.get('WORKSPACE') or None == os.environ.get('BUILD_NUMBER'):
@@ -282,7 +319,7 @@ def jenkins_mv(apk_name):
 	if not os.path.exists(apk_to):
 		os.mkdir(apk_to)
 	cmd_mv_apk = 'mv %s %s'%(apk_name, apk_to)
-	print CommandUtil.excute(cmd_mv_apk, args.dry_run)
+	print CommandUtil.excute(cmd_mv_apk, dry_run)
 
 def main():
 	parser = argparse.ArgumentParser(description='APK Builder.')
@@ -327,7 +364,7 @@ def main():
 		# print 'init build path [%s] for %s ...' % (os.getcwd(), args.app)
 		parser.print_help()
 
-	test()
+	# test()
 
 if __name__ == '__main__':
 	print 'Launching ...'
