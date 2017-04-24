@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="plugin_task" default="package" basedir=".">
+
+	<property file="local.properties" />
+	<property file="ant.properties" />
+	<property file="plugin.properties" />
+
+	<property environment="env" />
+	<condition property="sdk.dir" value="${env.ANDROID_HOME}">
+		<isset property="env.ANDROID_HOME" />
+	</condition>
+
+	<property file="local.properties"/>
+
+	<!-- jar file from where the tasks are loaded -->
+    <path id="android.antlibs">
+        <pathelement path="${sdk.dir}/tools/lib/ant-tasks.jar" />
+    </path>
+
+    <!-- Custom tasks -->
+    <taskdef resource="anttasks.properties" classpathref="android.antlibs" />
+
+	<path id="plugin_manifest">
+	  <fileset dir="${plugin_publish_dir}">
+		  <include name="AndroidManifest.xml"/>
+	  </fileset>
+	</path>
+
+	<property name="p_code" value="bin/plugin-class" />
+	<target name="package">
+		<delete dir="${p_code}" />
+		<mkdir dir="${p_code}" />
+		<javac source="1.7" target="1.7" destdir="${p_code}" includeantruntime="on">
+			<src>
+				<pathelement location="src" />
+				<pathelement location="gen" />
+			</src>
+			<exclude name="com/fl/qzgs/*/*.java"/>
+			<exclude name="com/commonchannel/*.java"/>
+			<classpath>
+				<fileset file="../demo_reference/bin/classes.jar" />
+				<fileset dir="libs">
+					<include name="**/*.jar" />
+				</fileset>
+				<pathelement path="${sdk.dir}/platforms/android-21/android.jar" />
+			</classpath>
+		</javac>
+		<jar destfile="plugin_lib.jar" basedir="${p_code}" />
+	</target>
+</project>

@@ -12,25 +12,7 @@ from subprocess import Popen, PIPE
 import time #计算命令执行时长
 import logging
 
-# project folders
-src_prjects="""
-CommonChannel
-channel_360_combine
-channel_UC_combine
-channel_baidu_combine
-channel_dangle_combine
-channel_feiliu_combine
-channel_huawei_combine
-channel_jinli_combine
-channel_lenovo_combine
-channel_mz_combine
-channel_oppo_combine
-channel_vivo_combine
-channel_xiaomi_combine
-"""
-# channel_tencent_combine
-# channel_anzhi_combine
-# channel_coolpad_combine
+import ConfigParser
 
 class CommandUtil(object):
 
@@ -88,7 +70,7 @@ def excute(cmd):
 	else:
 		return ('[ok]', cmd, err, out)
 
-def build_project_sdkagent(src, project, name, dist, library='CommonChannel'):
+def build_project_sdkagent(src, project, name, dist, library):
 	"""给svn中最新的适配代码打包
 	"""
 	# -l --library    : Directory of an Android library to add
@@ -136,26 +118,71 @@ def build_project_sdkagent(src, project, name, dist, library='CommonChannel'):
 
 	if '[ok]' == status and library:
 		print CommandUtil.excute('cp %s/bin/MainActivity-debug.apk %s/%s-r%s.apk' % (sa_dir, dist, name, revision.strip('\n')) )
+		if not os.path.exists( os.path.join(sa_dir,'plugin_task.xml') ):
+			CommandUtil.excute('cp plugin_task.xml %s'% sa_dir)
+		CommandUtil.excute('ant -f %s/plugin_task.xml'% sa_dir)
 
 	logging.info('===== [%s] Build Over %s %s -r%s' % (project, time.time()-start_point, status, revision) )
 
 def build_demos(args):
 	"""sdk-agent适配各个渠道的demo，一锅出多个Android apk
-	python apk_builder.py -s /tmp/apk_builder/demo -d /tmp/apk_builder/demo_dist -c demo
+	python apk_builder.py -s demo.ini -d /tmp/apk_builder/demo_dist -c demo
 	"""
+	
+	config = ConfigParser.RawConfigParser(allow_no_value=True)
+	config.read(args.src)
+	demo_dir = config.get('base', 'base_dir')
+
+	if not os.path.exists(demo_dir):
+		os.makedirs(demo_dir)
+	# 1 demo_reference + 15 channel plugins = 16
+	if len( os.listdir(demo_dir) ) < 16:
+		# checkout from svn
+		cmd = 'svn co %s %s/demo_reference'%(config.get('base', 'svn_reference'), demo_dir) 
+		print cmd + " [%d] %s %s" % CommandUtil.excute(cmd)
+		cmd = 'svn ls %s'%config.get('base', 'svn_demo_base')
+		(cost, out, err) = CommandUtil.excute(cmd)
+		if len(err) > 0:
+			print cmd, err
+			return
+		for project in out.split("\n"):
+			cmd = 'svn co %s/%s %s/%s'%(config.get('base', 'svn_demo_base') , project, demo_dir, project) 
+			print 'checking out... ', cmd
+			CommandUtil.excute(cmd)
+
 	dist = args.dest
 	if not os.path.exists(dist):
-		excute('mkdir -p %s' % (dist) )
-	for project in src_prjects.split("\n"):
-		if len(project) == 0: continue
+		print CommandUtil.excute('mkdir -p %s' % (dist) )
+	
+	# build reference lib:
+	build_project_sdkagent(demo_dir, 'demo_reference', 'plugin_base', dist, None)
+	# check revision & replace new in plugins
+	revision = CommandUtil.svn_ver( os.path.join(demo_dir, 'demo_reference') )
+	base_jar = 'plugin_base-r%s.jar' % revision
+	print '[%s] create plugin base lib. %s %s'%CommandUtil.excute('cp %s %s'% 
+		(os.path.join(demo_dir, 'demo_reference/bin/classes.jar'), 
+		os.path.join(demo_dir, base_jar) ) )
+	plugin_dir = config.get('plugins', 'base_dir')
+	for plugin in os.listdir(plugin_dir): 
+		if plugin.find('plugin_') ==0: 
+			if not os.path.exists( os.path.join(plugin_dir, plugin, 'libs', base_jar) ): 
+				# rm libs/plugin_base-r*.jar
+				print CommandUtil.excute( 'rm %s'%os.path.join(plugin_dir, plugin, 'libs/plugin_base-r*.jar') )
+				# replaced with the newest one
+				print CommandUtil.excute( 'cp %s %s'%(os.path.join(demo_dir, base_jar), os.path.join(plugin_dir, plugin, 'libs')) )
+
+	for project in os.listdir(demo_dir):
+		if project == 'demo_reference': continue
+		if not os.path.isdir( os.path.join(demo_dir, project) ): continue
 		name = project
 		if len(project.split('_'))==4:
 			name = project.split('_')[2]
-			build_project_sdkagent(args.src, project, name, dist, args.lib)
+			build_project_sdkagent(demo_dir, project, name, dist, 'demo_reference')
 		else:
-			build_project_sdkagent(args.src, project, name, dist, None)
+			print 'unknown project!'
+			logging.error( 'unknown project[%s]!'%project  )
 
-CHANNEL_LIST = 'az bd cp dj fl hw jl lx mz qh op uc vv xx yyb'
+CHANNEL_LIST = 'az bd cp dj fl hw jl lx mz qh op uc vv xm yyb'
 def init_apks_dir(args):
 	"""初始化游戏渠道打包目录: xx_apk， 建议和sdk-u3d-plugins同级
 	python apk_builder.py -s .. -c init
@@ -209,40 +236,6 @@ def merge_manifest(project_dir, plugin_dir, package_name):
 	print excute('sed -i.bak s/package=\\".*\\"/package=\\"%s\\"/g AndroidManifest.xml'%package_name)
 	print excute('grep package AndroidManifest.xml')
 
-def add_plugin_uc(project_dir, lib_dir, plugin_dir):
-	"""Merge UC Channel
-
-	project_dir 打包项目路径
-	lib_dir 接口框架路径
-	plugin_dir 渠道插件路径
-
-	"""
-	# enter clean project folder
-	if not os.access(project_dir,os.F_OK):
-		os.mkdir(project_dir)
-
-	os.chdir(project_dir)
-	if not os.access('./assets',os.F_OK):
-		os.mkdir('./assets')
-	if not os.access('./libs',os.F_OK):
-		os.mkdir('./libs')
-
-	print excute('cp %s/AndroidManifest.xml .' % (plugin_dir) )
-	# cp Assets
-	print excute('cp -R %s/assets/ucgamesdk ./assets' % (plugin_dir) )
-
-	# cp Libs
-	print excute('cp %s/libs/alipay.jar ./libs' % (plugin_dir) )
-	print excute('cp %s/libs/classes.jar ./libs' % (plugin_dir) )
-	print excute('cp %s/libs/okhttp-*.jar ./libs' % (plugin_dir) )
-	print excute('cp %s/libs/okio-*.jar ./libs' % (plugin_dir) )
-
-	# CommonChannel lib
-	print excute('cp %s/bin/classes.jar ./libs/commonchannel.jar' % (lib_dir) )
-
-	# UC lib: jar cf uc_channel.jar com/flsdk/channel/*.class
-	print excute('cd %s/bin/classes; jar cf uc_channel.jar com/flsdk/channel/*.class' % (plugin_dir) )
-	print excute('cp %s/bin/classes/uc_channel.jar ./libs' % (plugin_dir) )
 
 def test():
 	
@@ -256,12 +249,6 @@ def test():
 	# merge_manifest('/private/tmp/qz11', '/tmp/combine/FLSDK_channel_UC_combine', 'com.fl.qzgs.uc.aligames')
 	git_dir = '/tmp/sdk-u3d-plugins'
 	print 'git version: %s@%s '% ( CommandUtil.git_ver(git_dir),git_dir )
-
-def install_game_uc(args):
-	game_apk = args.src
-	package_name = 'com.fl.qzgs.uc.aligames'
-	print excute('adb uninstall %s' % package_name)
-	print excute('adb install %s' % game_apk)
 
 
 def build_game_apk(args):
@@ -356,10 +343,6 @@ def main():
 		build_demos(args)
 	elif 'game' == args.cmd:
 		build_game_apk(args)
-	elif 'install' == args.cmd:
-		install_game_uc(args)
-	elif 'plugin' == args.cmd:
-		build_plugin_uc(args.dest)
 	elif 'help' == args.cmd:
 		# print 'init build path [%s] for %s ...' % (os.getcwd(), args.app)
 		parser.print_help()
