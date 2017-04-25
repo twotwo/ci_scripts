@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<!--
+  Copyright 2010 Google Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Original slides: Marcin Wichary (mwichary@google.com)
+  Modifications: Ernest Delgado (ernestd@google.com)
+                 Alex Russell (slightlyoff@chromium.org)
+
+  landslide modifications: Adam Zapletal (adamzap@gmail.com)
+                           Nicolas Perriault (nperriault@gmail.com)
+-->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>APK Builder</title>
+    <!-- Styles -->
+    
+    <link rel="stylesheet" media="print" href="theme/css/print.css">
+    <link rel="stylesheet" media="screen, projection" href="theme/css/screen.css">
+    
+    
+    <!-- /Styles -->
+    <!-- Javascripts -->
+    
+    <script type="text/javascript" src="theme/js/slides.js"></script>
+    
+    
+    
+    <!-- /Javascripts -->
+</head>
+<body>
+  <div id="blank"></div>
+  <div class="presentation">
+    <div id="current_presenter_notes">
+      <div id="presenter_note"></div>
+    </div>
+    <div class="slides">
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-1">
+          <div class="inner">
+            
+            <header><h1>APK Builder</h1></header>
+            
+            
+            <section><p><a href="http://172.16.100.90/gerrit/sdk-u3d-plugins">sdk-u3d-plugins</a></p>
+<ul>
+<li>Author: liyan</li>
+<li>Date: 2017-04-20</li>
+<li>Ver: 1.0</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              1/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-2">
+          <div class="inner">
+            
+            <header><h1>Table of Contents</h1></header>
+            
+            
+            <section><h2>1. 配置 ant 打包 apk 基础环境</h2>
+<ul>
+<li>Android 提供了基于 ant 的 apk 打包工具</li>
+<li>测试生成 Android 工程、编译 apk 的命令</li>
+</ul>
+<h2>2. 生成 demos 和 plugins</h2>
+<h2>3. 合成最终发布工程</h2>
+<h2>4. 集成到 Jenkins</h2></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              2/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-3">
+          <div class="inner">
+            
+            <header><h1>1. 配置 ant 打包 apk 基础环境</h1></header>
+            
+            
+            <section><pre><code>    $ android create project \
+        --target 1 \
+        --name MyName \
+        --path . \
+        --activity MyActivity \
+        --package com.yourdomain.yourproject
+    ...
+    Added file ./AndroidManifest.xml
+    Added file ./build.xml
+    Added file ./proguard-project.txt
+
+    $ ant debug
+    ...
+    debug:
+
+    BUILD SUCCESSFUL
+    Total time: 7 seconds
+    $ ll bin/*.apk     
+    14444 Apr 21 07:41 bin/MyName-debug-unaligned.apk
+    14452 Apr 21 07:41 bin/MyName-debug.apk
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              3/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-4">
+          <div class="inner">
+            
+            <header><h1>1.1 确保以下内容正确安装</h1></header>
+            
+            
+            <section><pre><code>1. java 1.8.x
+2. apache ant 1.8+
+2. python 2.7.x
+3. Android SDK command line tools
+4. git 2.x
+
+    ➜  ~ java -version
+    java version "1.8.0_20"
+    ➜  ~  python -V
+    Python 2.7.11
+    ➜  ~ ant -version
+    Apache Ant version 1.8.0 compiled on February 1 2010
+    ➜  ~ git --version
+    git version 2.11.0 (Apple Git-81)
+    ➜  ~ android list target
+    Available Android targets:
+    ----------
+    id: 6 or "android-21"
+         Name: Android 5.0.1
+         Type: Platform
+         API level: 21
+         Revision: 2
+         Skins: HVGA, QVGA, WQVGA400, WQVGA432, WSVGA, WVGA800 (default), WVGA854, WXGA720, WXGA800, WXGA800-7in
+     Tag/ABIs : no ABIs.
+     ...
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              4/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-5">
+          <div class="inner">
+            
+            <header><h1>2. 生成 demos 和 plugins</h1></header>
+            
+            
+            <section><pre><code>➜  sdk-u3d-plugins git:(master) ✗ python apk_builder.py -s demo.ini -d /tmp/apk_builder/dist_0424 -c demo
+
+➜  sdk-u3d-plugins git:(master) ✗  ll /tmp/apk_builder/dist_0424 
+total 143664
+-rw-r--r--  1 liyan  wheel    11M Apr 24 19:54 360-r23546.apk
+-rw-r--r--  1 liyan  wheel   5.1M Apr 24 19:58 UC-r23535.apk
+-rw-r--r--  1 liyan  wheel   3.5M Apr 24 19:54 anzhi-r23538.apk
+-rw-r--r--  1 liyan  wheel   4.7M Apr 24 19:55 baidu-r23516.apk
+-rw-r--r--  1 liyan  wheel   3.3M Apr 24 19:55 coolpad-r23262.apk
+-rw-r--r--  1 liyan  wheel   5.3M Apr 24 19:56 dangle-r23537.apk
+-rw-r--r--  1 liyan  wheel   1.8M Apr 24 19:56 feiliu-r23566.apk
+-rw-r--r--  1 liyan  wheel   1.0M Apr 24 19:56 huawei-r23567.apk
+-rw-r--r--  1 liyan  wheel   5.9M Apr 24 19:56 jinli-r23551.apk
+-rw-r--r--  1 liyan  wheel   2.7M Apr 24 19:57 lenovo-r23569.apk
+-rw-r--r--  1 liyan  wheel   7.8M Apr 24 19:57 mz-r23514.apk
+-rw-r--r--  1 liyan  wheel   3.5M Apr 24 19:57 oppo-r23541.apk
+-rw-r--r--  1 liyan  wheel   3.3M Apr 24 19:57 tencent-r23570.apk
+-rw-r--r--  1 liyan  wheel   5.9M Apr 24 19:58 vivo-r23562.apk
+-rw-r--r--  1 liyan  wheel   5.6M Apr 24 19:59 xiaomi-r23568.apk
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              5/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-6">
+          <div class="inner">
+            
+            <header><h1>3. 合成最终发布工程</h1></header>
+            
+            
+            <section><h2>3.1 初始化</h2>
+<h2>3.1 打渠道包</h2></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              6/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-7">
+          <div class="inner">
+            
+            <header><h1>4. 集成到 Jenkins</h1></header>
+            
+            
+            <section><p><img alt="打出来的工程包" src="../slide/build_on_jenkins.png" /></p></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              7/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-8">
+          <div class="inner">
+            
+            
+            <section><p>END</p></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              8/8
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <div id="toc" class="sidebar hidden">
+    <h2>Table of Contents</h2>
+    <table>
+      <caption>Table of Contents</caption>
+      
+      <tr id="toc-row-1">
+        <th><a href="#slide1">APK Builder</a></th>
+        <td><a href="#slide1">1</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-2">
+        <th><a href="#slide2">Table of Contents</a></th>
+        <td><a href="#slide2">2</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-3">
+        <th><a href="#slide3">1. 配置 ant 打包 apk 基础环境</a></th>
+        <td><a href="#slide3">3</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-4">
+        <th><a href="#slide4">1.1 确保以下内容正确安装</a></th>
+        <td><a href="#slide4">4</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-5">
+        <th><a href="#slide5">2. 生成 demos 和 plugins</a></th>
+        <td><a href="#slide5">5</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-6">
+        <th><a href="#slide6">3. 合成最终发布工程</a></th>
+        <td><a href="#slide6">6</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-7">
+        <th><a href="#slide7">4. 集成到 Jenkins</a></th>
+        <td><a href="#slide7">7</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-8">
+        <th><a href="#slide8">-</a></th>
+        <td><a href="#slide8">8</a></td>
+      </tr>
+      
+      
+    </table>
+  </div>
+  
+  <div id="help" class="sidebar hidden">
+    <h2>Help</h2>
+    <table>
+      <caption>Help</caption>
+      <tr>
+        <th>Table of Contents</th>
+        <td>t</td>
+      </tr>
+      <tr>
+        <th>Exposé</th>
+        <td>ESC</td>
+      </tr>
+      <tr>
+        <th>Full screen slides</th>
+        <td>e</td>
+      </tr>
+      <tr>
+        <th>Presenter View</th>
+        <td>p</td>
+      </tr>
+      <tr>
+        <th>Source Files</th>
+        <td>s</td>
+      </tr>
+      <tr>
+        <th>Slide Numbers</th>
+        <td>n</td>
+      </tr>
+      <tr>
+        <th>Toggle screen blanking</th>
+        <td>b</td>
+      </tr>
+      <tr>
+        <th>Show/hide slide context</th>
+        <td>c</td>
+      </tr>
+      <tr>
+        <th>Notes</th>
+        <td>2</td>
+      </tr>
+      <tr>
+        <th>Help</th>
+        <td>h</td>
+      </tr>
+    </table>
+  </div>
+  <script>main()</script>
+</body>
+</html>
