@@ -78,7 +78,7 @@
             </aside>
             
             <aside class="page_number">
-              1/8
+              1/12
             </aside>
           </footer>
         </div>
@@ -94,12 +94,20 @@
             
             <section><h2>1. 配置 ant 打包 apk 基础环境</h2>
 <ul>
-<li>Android 提供了基于 ant 的 apk 打包工具</li>
-<li>测试生成 Android 工程、编译 apk 的命令</li>
+<li>Android 基于 ant 的 apk 打包工具环境</li>
+<li>生成 Android 工程、编译、安装 apk</li>
+<li>一些有趣的 apk 命令</li>
 </ul>
-<h2>2. 生成 demos 和 plugins</h2>
-<h2>3. 合成最终发布工程</h2>
-<h2>4. 集成到 Jenkins</h2></section>
+<h2>2. 打包脚本介绍</h2>
+<ul>
+<li>参数说明</li>
+<li>执行示例</li>
+</ul>
+<h2>3. 集成到 Jenkins</h2>
+<ul>
+<li>发布 demos 和 plugins</li>
+<li>发布最终工程</li>
+</ul></section>
             
           </div>
           <div class="presenter_notes">
@@ -115,7 +123,7 @@
             </aside>
             
             <aside class="page_number">
-              2/8
+              2/12
             </aside>
           </footer>
         </div>
@@ -129,57 +137,8 @@
             <header><h1>1. 配置 ant 打包 apk 基础环境</h1></header>
             
             
-            <section><pre><code>    $ android create project \
-        --target 1 \
-        --name MyName \
-        --path . \
-        --activity MyActivity \
-        --package com.yourdomain.yourproject
-    ...
-    Added file ./AndroidManifest.xml
-    Added file ./build.xml
-    Added file ./proguard-project.txt
-
-    $ ant debug
-    ...
-    debug:
-
-    BUILD SUCCESSFUL
-    Total time: 7 seconds
-    $ ll bin/*.apk     
-    14444 Apr 21 07:41 bin/MyName-debug-unaligned.apk
-    14452 Apr 21 07:41 bin/MyName-debug.apk
-</code></pre></section>
-            
-          </div>
-          <div class="presenter_notes">
-            <header><h1>Presenter Notes</h1></header>
-            <section>
-            
-            </section>
-          </div>
-          <footer>
-            
-            <aside class="source">
-              Source: <a href="../slide.md">../slide.md</a>
-            </aside>
-            
-            <aside class="page_number">
-              3/8
-            </aside>
-          </footer>
-        </div>
-      </div>
-      
-      <!-- slide source: ../slide.md -->
-      <div class="slide-wrapper">
-        <div class="slide slide-4">
-          <div class="inner">
-            
-            <header><h1>1.1 确保以下内容正确安装</h1></header>
-            
-            
-            <section><pre><code>1. java 1.8.x
+            <section><h1>1.1 确保以下内容正确安装</h1>
+<pre><code>1. java 1.8.x
 2. apache ant 1.8+
 2. python 2.7.x
 3. Android SDK command line tools
@@ -220,7 +179,57 @@
             </aside>
             
             <aside class="page_number">
-              4/8
+              3/12
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-4">
+          <div class="inner">
+            
+            <header><h1>1.2 生成 Android 工程、编译 apk</h1></header>
+            
+            
+            <section><pre><code>    $ android create project \
+        --target 1 \
+        --name MyName \
+        --path . \
+        --activity MyActivity \
+        --package com.yourdomain.yourproject
+    ...
+    Added file ./AndroidManifest.xml
+    Added file ./build.xml
+    Added file ./proguard-project.txt
+
+    $ ant debug
+    ...
+    debug:
+
+    BUILD SUCCESSFUL
+    Total time: 7 seconds
+    $ ll bin/*.apk     
+    14444 Apr 21 07:41 bin/MyName-debug-unaligned.apk
+    14452 Apr 21 07:41 bin/MyName-debug.apk
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              4/12
             </aside>
           </footer>
         </div>
@@ -231,7 +240,115 @@
         <div class="slide slide-5">
           <div class="inner">
             
-            <header><h1>2. 生成 demos 和 plugins</h1></header>
+            <header><h1>1.3 查看 apk 信息，安装与卸载 apk</h1></header>
+            
+            
+            <section><pre><code># 查看apk包名
+$ aapt dump badging &lt;path-to-apk&gt; | grep package
+package: name='com.tencent.xxxx.xxx' versionCode='1' versionName='1.0.2' platformBuildVersionName='5.0.1-1624448'
+# 按包名删除已经安装了的包
+$ adb uninstall com.tencent.xxxx.xxx
+$ adb install xx-p18-release.apk
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              5/12
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-6">
+          <div class="inner">
+            
+            <header><h1>1.4 查看 apk 是否正确签名</h1></header>
+            
+            
+            <section><pre><code># 获取APK中的证书摘要
+keytool -list -printcert -jarfile &lt;apk file&gt;
+...
+Certificate fingerprints:
+     MD5:  E1:2B:2A:28:23:6D:39:1C:F3:D3:3F:80:B3:30:10:83
+     SHA1: xx:xx:....
+
+# 获取证书摘要(SHA1)
+-bash-4.1$ keytool -list -keystore &lt;keystore file&gt;
+Enter keystore password:  
+...
+Certificate fingerprint (SHA1): xx:xx:....
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              6/12
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-7">
+          <div class="inner">
+            
+            <header><h1>2 apk-builder 使用帮助</h1></header>
+            
+            
+            <section><p><img alt="apk-builder" src=".././slide/apk-builder.png" /></p></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              7/12
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-8">
+          <div class="inner">
+            
+            <header><h1>2.1 生成 demos 和 plugins</h1></header>
             
             
             <section><pre><code>➜  sdk-u3d-plugins git:(master) ✗ python apk_builder.py -s demo.ini -d /tmp/apk_builder/dist_0424 -c demo
@@ -269,7 +386,7 @@ total 143664
             </aside>
             
             <aside class="page_number">
-              5/8
+              8/12
             </aside>
           </footer>
         </div>
@@ -277,14 +394,27 @@ total 143664
       
       <!-- slide source: ../slide.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-6">
+        <div class="slide slide-9">
           <div class="inner">
             
-            <header><h1>3. 合成最终发布工程</h1></header>
+            <header><h1>2.2 合成最终发布工程</h1></header>
             
             
-            <section><h2>3.1 初始化</h2>
-<h2>3.1 打渠道包</h2></section>
+            <section><h2>2.2.1 打渠道包</h2>
+<pre><code>game=../game_apks/g47_exit
+vc=1
+vn=1.0.2
+plugins="az bd cp dj fl hw jl lx mz qh op uc vv xm yyb"
+cd sdk-u3d-plugins; git pull
+for p in $plugins; do
+    echo "building... $p " `date +%H:%M:%S`
+    cd ../${p}_apk; rm -rf build.log game
+    python apk_builder.py -a qzgs -s $game -d $p -c game -vc $vc -vn=$vn
+done
+</code></pre>
+<h2>2.2.2 调试(dry-run mode)</h2>
+<pre><code>python apk_builder.py -a qzgs -s ../games/g27_exit_100 -d bd -c game --dry-run
+</code></pre></section>
             
           </div>
           <div class="presenter_notes">
@@ -300,7 +430,7 @@ total 143664
             </aside>
             
             <aside class="page_number">
-              6/8
+              9/12
             </aside>
           </footer>
         </div>
@@ -308,13 +438,14 @@ total 143664
       
       <!-- slide source: ../slide.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-7">
+        <div class="slide slide-10">
           <div class="inner">
             
-            <header><h1>4. 集成到 Jenkins</h1></header>
+            <header><h1>3. 集成到 Jenkins</h1></header>
             
             
-            <section><p><img alt="打出来的工程包" src="../slide/build_on_jenkins.png" /></p></section>
+            <section><h2>3.1 发布 demos 和 plugins</h2>
+<p><img alt="发布 demos 和 plugins" src="../slide/jenkins_release_demo.png" /></p></section>
             
           </div>
           <div class="presenter_notes">
@@ -330,7 +461,7 @@ total 143664
             </aside>
             
             <aside class="page_number">
-              7/8
+              10/12
             </aside>
           </footer>
         </div>
@@ -338,7 +469,37 @@ total 143664
       
       <!-- slide source: ../slide.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-8">
+        <div class="slide slide-11">
+          <div class="inner">
+            
+            <header><h1>3.2 发布最终工程</h1></header>
+            
+            
+            <section><p><img alt="发布最终工程" src="../slide/jenkins_release_project.png" /></p></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            <aside class="source">
+              Source: <a href="../slide.md">../slide.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              11/12
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: ../slide.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-12">
           <div class="inner">
             
             
@@ -358,7 +519,7 @@ total 143664
             </aside>
             
             <aside class="page_number">
-              8/8
+              12/12
             </aside>
           </footer>
         </div>
@@ -391,32 +552,56 @@ total 143664
       
       
       <tr id="toc-row-4">
-        <th><a href="#slide4">1.1 确保以下内容正确安装</a></th>
+        <th><a href="#slide4">1.2 生成 Android 工程、编译 apk</a></th>
         <td><a href="#slide4">4</a></td>
       </tr>
       
       
       <tr id="toc-row-5">
-        <th><a href="#slide5">2. 生成 demos 和 plugins</a></th>
+        <th><a href="#slide5">1.3 查看 apk 信息，安装与卸载 apk</a></th>
         <td><a href="#slide5">5</a></td>
       </tr>
       
       
       <tr id="toc-row-6">
-        <th><a href="#slide6">3. 合成最终发布工程</a></th>
+        <th><a href="#slide6">1.4 查看 apk 是否正确签名</a></th>
         <td><a href="#slide6">6</a></td>
       </tr>
       
       
       <tr id="toc-row-7">
-        <th><a href="#slide7">4. 集成到 Jenkins</a></th>
+        <th><a href="#slide7">2 apk-builder 使用帮助</a></th>
         <td><a href="#slide7">7</a></td>
       </tr>
       
       
       <tr id="toc-row-8">
-        <th><a href="#slide8">-</a></th>
+        <th><a href="#slide8">2.1 生成 demos 和 plugins</a></th>
         <td><a href="#slide8">8</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-9">
+        <th><a href="#slide9">2.2 合成最终发布工程</a></th>
+        <td><a href="#slide9">9</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-10">
+        <th><a href="#slide10">3. 集成到 Jenkins</a></th>
+        <td><a href="#slide10">10</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-11">
+        <th><a href="#slide11">3.2 发布最终工程</a></th>
+        <td><a href="#slide11">11</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-12">
+        <th><a href="#slide12">-</a></th>
+        <td><a href="#slide12">12</a></td>
       </tr>
       
       
