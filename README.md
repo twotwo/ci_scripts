@@ -17,7 +17,7 @@ APK build script
 	JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_20.jdk/Contents/Home
 	ANT_HOME=/opt/local/tools/java/ant/apache-ant-1.8.0
 	ANDROID_HOME=/opt/app/android/sdk
-	PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANT_HOME/bin
+	PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/25.0.2:$ANT_HOME/bin
 
 	# android工具安装
 	wget http://mirrors.tuna.tsinghua.edu.cn/apache//ant/binaries/apache-ant-1.10.1-bin.zip
@@ -60,6 +60,27 @@ APK build script
 	Updated local.properties
 	Updated file ./proguard-project.txt
 	➜  my_android ant release
+
+### 验证签名
+
+#### 查看APK签名信息
+
+    # 查看签名信息
+    jarsigner -verify -verbose -certs <apk file>
+
+#### APK签名与keystore对比
+[检查apk是用哪个keystore做的签名](http://stackoverflow.com/questions/11331469/how-do-i-find-out-which-keystore-was-used-to-sign-an-app)
+    # 获取证书摘要(SHA1)
+    -bash-4.1$ keytool -list -keystore <keystore file>
+    Enter keystore password:  
+    ...
+    Certificate fingerprint (SHA1): xx:xx:....
+    # 获取APK中的证书摘要
+    keytool -list -printcert -jarfile <apk file>
+    ...
+    Certificate fingerprints:
+         MD5:  E1:2B:2A:28:23:6D:39:1C:F3:D3:3F:80:B3:30:10:83
+         SHA1: xx:xx:....
  
 ### 安装
 
