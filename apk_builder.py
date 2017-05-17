@@ -11,7 +11,6 @@ from subprocess import Popen, PIPE
 
 import time #计算命令执行时长
 import logging
-
 import ConfigParser
 
 class CommandUtil(object):
@@ -19,12 +18,12 @@ class CommandUtil(object):
 	@staticmethod
 	def excute(cmd, dry_run=False):
 		start_point = time.time()
-		process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
 		if dry_run: 
-			logging.warn(cmd)
+			logging.warn('dry-run mode on[%s]'%cmd)
 			return (0, cmd, '')
 		else:
 			logging.debug(cmd)
+		process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
 		out, err = process.communicate()
 		if len(err) > 0:
 			logging.error('cmd=%s, err=%s' %(cmd, err))
@@ -58,18 +57,6 @@ class CommandUtil(object):
 		(cost, out, err) = CommandUtil.excute(cmd)
 		return out.strip('\n')
 
-
-def excute(cmd):
-	start_point = time.time()
-	process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-	out, err = process.communicate()
-	# time.time()-start_point
-	if len(err) > 0:
-		logging.error('excute[%s]: %s\n%s' %(cmd, err, out))
-		return ('[failed]', cmd, err, out)
-	else:
-		return ('[ok]', cmd, err, out)
-
 def build_project_sdkagent(src, project, name, dist, library):
 	"""给svn中最新的适配代码打包
 	"""
@@ -82,7 +69,6 @@ def build_project_sdkagent(src, project, name, dist, library):
 
 	revision = CommandUtil.svn_ver(sa_dir)
 	print 'build %s@r%s' % (sa_dir, revision)
-	# print excute('svn up')
 
 	print 'create android project ... '
 	cmd = 'android update project -p %s -n MainActivity -t android-21'%sa_dir
@@ -113,8 +99,6 @@ def build_project_sdkagent(src, project, name, dist, library):
 	else:
 		status = '[ok]'
 		print status, cmd
-
-	# (s, c, err, revision) = excute('svn info -rHEAD | grep "Last Changed Rev" | cut -d" " -f4')
 
 	if '[ok]' == status and library:
 		print CommandUtil.excute('cp %s/bin/MainActivity-debug.apk %s/%s-r%s.apk' % (sa_dir, dist, name, revision.strip('\n')) )
@@ -182,6 +166,7 @@ def build_demos(args):
 			print 'unknown project!'
 			logging.error( 'unknown project[%s]!'%project  )
 
+
 CHANNEL_LIST = 'az bd cp dj fl hw jl lx mz qh op uc vv xm yyb'
 def init_apks_dir(args):
 	"""初始化游戏渠道打包目录: xx_apk， 建议和sdk-u3d-plugins同级
@@ -193,31 +178,31 @@ def init_apks_dir(args):
 		apk_dir = os.path.join(base, channel+'_apk')
 		if not os.path.exists(apk_dir):
 			os.mkdir(apk_dir)
-			print excute('ln -s %s/apk_builder.py %s' % (os.path.abspath('.'), apk_dir) )
+			print CommandUtil.excute('ln -s %s/apk_builder.py %s' % (os.path.abspath('.'), apk_dir) )
 		os.chdir(apk_dir)
-		(status, cmd, err, out) = excute('python apk_builder.py -c help')
-		print status, out, err
+		print CommandUtil.excute('python apk_builder.py -c help')
 
-def clean_project(dir):
+def clean_project(args):
 	"""清理母包
 	"""
-	os.chdir(dir)
+	plugin_dir = os.path.dirname(os.path.realpath('apk_builder.py'))
+	app_dir = os.path.abspath(args.src)
+	os.chdir(app_dir)
 
 	# assets文件夹
 	# libs 7 packages
-	print excute('rm ./libs/alipaySdk-*.jar')
-	print excute('rm ./libs/CommonChannel.jar')
-	print excute('rm ./libs/android-support-v4.jar')
-	print excute('rm ./libs/FL*.jar') #2 packages
-	print excute('rm ./libs/ok*.jar') #2 packages
-	print excute('rm ./libs/gson*.jar')
+	print CommandUtil.excute('rm ./libs/alipaySdk-*.jar')
+	print CommandUtil.excute('rm ./libs/CommonChannel.jar')
+	print CommandUtil.excute('rm ./libs/android-support-v4.jar')
+	print CommandUtil.excute('rm ./libs/FL*.jar') #2 packages
+	print CommandUtil.excute('rm ./libs/ok*.jar') #2 packages
+	print CommandUtil.excute('rm ./libs/gson*.jar')
 	# 手工剔除 AndroidManifest.xml 中的参数配置
 	# 备份干净的 AndroidManifest.xml
-	print excute('mv AndroidManifest.xml AndroidManifest-org.xml')
-	print excute('cp AndroidFLMobile_v2.keystore')
+	print CommandUtil.excute('mv AndroidManifest.xml AndroidManifest-org.xml')
 
-	print excute('cp ../AndroidFLMobile_v2.keystore .')
-	print excute('cp ../ant.properties .')
+	print CommandUtil.excute( 'cp %s/AndroidFLMobile_v2.keystore %s'%(plugin_dir, app_dir) )
+	print CommandUtil.excute( 'cp %s/ant_%s.properties %s/ant.properties'%(plugin_dir, args.app, app_dir) )
 
 def merge_manifest(project_dir, plugin_dir, package_name):
 	"""合并 AndroidManifest.xml:
@@ -228,42 +213,39 @@ def merge_manifest(project_dir, plugin_dir, package_name):
 	# enter clean project folder
 	os.chdir(project_dir)
 	# 1. rm old
-	print excute('rm AndroidManifest.xml')
+	print CommandUtil.excute('rm AndroidManifest.xml')
 	# 2. merge 
-	print excute('ant -f merge_task.xml -Dplugin_publish_dir=%s' % (plugin_dir) )
-	print excute('android update project -p . -n MainActivity -t android-21')
+	print CommandUtil.excute('ant -f merge_task.xml -Dplugin_publish_dir=%s' % (plugin_dir) )
+	print CommandUtil.excute('android update project -p . -n MainActivity -t android-21')
 	# 3. replace package name
-	print excute('sed -i.bak s/package=\\".*\\"/package=\\"%s\\"/g AndroidManifest.xml'%package_name)
-	print excute('grep package AndroidManifest.xml')
+	print CommandUtil.excute('sed -i.bak s/package=\\".*\\"/package=\\"%s\\"/g AndroidManifest.xml'%package_name)
+	print CommandUtil.excute('grep package AndroidManifest.xml')
 
 
 def test():
 	
-	# build_project('/tmp/combine', 'test_project', 'test', 'dist')
-	# print excute('svn info -rHEAD | grep "Last Changed Rev" | cut -d" " -f4')
+	# build_project_sdkagent('/tmp/combine', 'test_project', 'test', 'dist')
+	# print CommandUtil.excute('svn info -rHEAD | grep "Last Changed Rev" | cut -d" " -f4')
 	
 	# os.chdir('/private/tmp/qz11')
-	# print excute('echo start at `date`')
 
 	# clean_project()
 	# merge_manifest('/private/tmp/qz11', '/tmp/combine/FLSDK_channel_UC_combine', 'com.fl.qzgs.uc.aligames')
-	git_dir = '/tmp/sdk-u3d-plugins'
-	print 'git version: %s@%s '% ( CommandUtil.git_ver(git_dir),git_dir )
+	print 'pwd=%s' % os.getcwd()
 
+def build_apk(args):
+	"""clean project + plugin -> build to apk : python apk_builder.py -s ../games/qz20_exit -d uc -c game
 
-def build_game_apk(args):
-	"""用干净游戏工程和渠道插件包进行打包: python apk_builder.py -s ../games/qz20_exit -d uc -c game
+- 渠道打包命名规则
+应用名称_渠道编码-应用版本好-插件版本号.apk
 
-- 游戏渠道打包命名规则
-qzgs_渠道编码-游戏包ID-插件版本号.apk
-
-游戏包举例：g20_exit/g20_noexit
-插件版本：p34234 - 就是对应的svn revision
+应用举例：g20_exit/g20_noexit
+插件举例：p23 - 对应的git revision
 	"""
 	start_point = time.time()
 	apk_dir = os.getcwd()
 	status = 'init'
-	print excute('echo start at `date`')
+	print CommandUtil.excute('echo start at `date`')
 	game_dir = args.src
 	channel = args.dest
 	plugin_dir = os.path.dirname(os.path.realpath('apk_builder.py'))
@@ -272,16 +254,13 @@ qzgs_渠道编码-游戏包ID-插件版本号.apk
 	revision = CommandUtil.git_ver(plugin_dir)
 	
 	# copy a clean build project
-	# (status, cmd, err, out) = excute('cp -R %s game' % game_dir )
 	(cost, out, err) = CommandUtil.excute('cp -R %s game' % game_dir, args.dry_run)
 
-	# (status, cmd, err, out) = excute( 'cp -Rv %s/plugin_%s/* game' % (plugin_dir, channel) )
 	(cost, out, err) = CommandUtil.excute('cp -Rv %s/plugin_%s/* game' % (plugin_dir, channel), args.dry_run)
 	logging.warn( out )
 
 	logging.info('===== [%s] Build Game Package: %s ' % (channel, os.getcwd()) )
-	# print excute('android update project -p . -n %s' % apk_name)
-	# (status, cmd, err, out) = excute('ant clean release')
+
 	print CommandUtil.excute('android update project -p game -n %s -t %s' % (apk_name,args.target), args.dry_run)
 	(cost, out, err) = CommandUtil.excute('ant -f game/build.xml clean release', args.dry_run)
 	if len(err) > 0:
@@ -291,7 +270,7 @@ qzgs_渠道编码-游戏包ID-插件版本号.apk
 	print 'build %s cost %s ' % (channel, time.time()-start_point)
 	
 	apk_to = apk_name+'-p'+revision.strip('\n')+ '-release.apk'
-	# print excute('cp bin/%s ../%s'%(apk_name+'-release.apk', apk_to) )
+
 	cmd_cp_apk = 'cp game/bin/%s %s'%(apk_name+'-release.apk', apk_to)
 	(cost, out, err) = CommandUtil.excute(cmd_cp_apk, args.dry_run)
 	# 在jenkins环境下
@@ -313,11 +292,11 @@ def main():
 	parser.add_argument('-a', dest='app', type=str, default='qzgs',
 											help='the apk name')
 	parser.add_argument('-t', dest='target', type=str, default='android-21',
-											help='Android Target ID')
+											help='Android Target ID. Default is android-21')
 	parser.add_argument('-s', dest='src', type=str, default='.',
 											help='read source code from this directory')
 	parser.add_argument('-d', dest='dest', type=str, default='./dist',
-											help='Build apk to this directory')
+											help='Build apk to this directory. Default is ./dist')
 	parser.add_argument('-c', dest='cmd', type=str, default='help',
 											help='Build command')
 	parser.add_argument('-l', dest='lib', type=str, default='CommonChannel',
@@ -333,22 +312,20 @@ def main():
 	# print "source : " + args.src
 	# print "dest : " + args.dest
 	# print "cmd : " + args.cmd
-	print 'dry_run=%s' % args.dry_run
+	if args.dry_run: print 'in dry-run mode'
 		
-	if 'init' == args.cmd:
+	if 'demo' == args.cmd:
+		build_demos(args)
+	elif 'init' == args.cmd:
 		init_apks_dir(args)
 	elif 'clean' == args.cmd:
 		clean_project(args)
-	elif 'demo' == args.cmd:
-		build_demos(args)
-	elif 'game' == args.cmd:
-		build_game_apk(args)
+	elif 'apk' == args.cmd:
+		build_apk(args)
 	elif 'help' == args.cmd:
-		# print 'init build path [%s] for %s ...' % (os.getcwd(), args.app)
 		parser.print_help()
 
 	# test()
 
 if __name__ == '__main__':
-	print 'Launching ...'
 	main()

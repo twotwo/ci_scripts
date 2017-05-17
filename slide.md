@@ -2,7 +2,8 @@
 <!-- landslide ../slide.md --relative --copy-theme -d 1.html -->
 
 # APK Builder
-[sdk-u3d-plugins](http://172.16.100.90/gerrit/sdk-u3d-plugins)
+[win32_tools](http://172.16.100.90/gerrit/users/liyan) win32_tools
+[sdk-u3d-plugins](http://172.16.100.90/gerrit/sdk-u3d-plugins) 打包脚本
 
  * Author: liyan
  * Date: 2017-04-20
@@ -34,9 +35,9 @@
 
     1. java 1.8.x
     2. apache ant 1.8+
-    2. python 2.7.x
-    3. Android SDK command line tools
-    4. git 2.x
+    3. git 2.x
+    4. Android SDK command line tools
+    5. python 2.7.x
 
         ➜  ~ java -version
         java version "1.8.0_20"
@@ -57,6 +58,8 @@
              Skins: HVGA, QVGA, WQVGA400, WQVGA432, WSVGA, WVGA800 (default), WVGA854, WXGA720, WXGA800, WXGA800-7in
          Tag/ABIs : no ABIs.
          ...
+
+.notes: git clone http://172.16.100.90/gerrit/users/liyan
 
 ---
 # 1.2 生成 Android 工程、编译 apk
@@ -88,7 +91,8 @@
 
     # 查看apk包名
     $ aapt dump badging <path-to-apk> | grep package
-    package: name='com.tencent.xxxx.xxx' versionCode='1' versionName='1.0.2' platformBuildVersionName='5.0.1-1624448'
+    package: name='com.tencent.xxxx.xxx' versionCode='1' \ 
+    versionName='1.0.2' platformBuildVersionName='5.0.1-1624448'
     # 按包名删除已经安装了的包
     $ adb uninstall com.tencent.xxxx.xxx
     $ adb install xx-p18-release.apk
@@ -110,9 +114,13 @@
     ...
     Certificate fingerprint (SHA1): xx:xx:....
 
+.notes: 比较两边SHA1是否一致
+
 ---
 # 2 apk-builder 使用帮助
 ![apk-builder](./slide/apk-builder.png)
+
+.notes: git clone http://172.16.100.90/gerrit/sdk-u3d-plugins
 
 ---
 # 2.1 生成 demos 和 plugins

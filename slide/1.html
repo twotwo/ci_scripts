@@ -131,7 +131,7 @@
       
       <!-- slide source: ../slide.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-3">
+        <div class="slide has_notes slide-3">
           <div class="inner">
             
             <header><h1>1. 配置 ant 打包 apk 基础环境</h1></header>
@@ -140,9 +140,9 @@
             <section><h1>1.1 确保以下内容正确安装</h1>
 <pre><code>1. java 1.8.x
 2. apache ant 1.8+
-2. python 2.7.x
-3. Android SDK command line tools
-4. git 2.x
+3. git 2.x
+4. Android SDK command line tools
+5. python 2.7.x
 
     ➜  ~ java -version
     java version "1.8.0_20"
@@ -163,7 +163,8 @@
          Skins: HVGA, QVGA, WQVGA400, WQVGA432, WSVGA, WVGA800 (default), WVGA854, WXGA720, WXGA800, WXGA800-7in
      Tag/ABIs : no ABIs.
      ...
-</code></pre></section>
+</code></pre>
+<p class="notes">git clone http://172.16.100.90/gerrit/users/liyan</p></section>
             
           </div>
           <div class="presenter_notes">
@@ -245,7 +246,8 @@
             
             <section><pre><code># 查看apk包名
 $ aapt dump badging &lt;path-to-apk&gt; | grep package
-package: name='com.tencent.xxxx.xxx' versionCode='1' versionName='1.0.2' platformBuildVersionName='5.0.1-1624448'
+package: name='com.tencent.xxxx.xxx' versionCode='1' \ 
+versionName='1.0.2' platformBuildVersionName='5.0.1-1624448'
 # 按包名删除已经安装了的包
 $ adb uninstall com.tencent.xxxx.xxx
 $ adb install xx-p18-release.apk
@@ -273,7 +275,7 @@ $ adb install xx-p18-release.apk
       
       <!-- slide source: ../slide.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-6">
+        <div class="slide has_notes slide-6">
           <div class="inner">
             
             <header><h1>1.4 查看 apk 是否正确签名</h1></header>
@@ -291,7 +293,8 @@ Certificate fingerprints:
 Enter keystore password:  
 ...
 Certificate fingerprint (SHA1): xx:xx:....
-</code></pre></section>
+</code></pre>
+<p class="notes">比较两边SHA1是否一致</p></section>
             
           </div>
           <div class="presenter_notes">
@@ -315,13 +318,14 @@ Certificate fingerprint (SHA1): xx:xx:....
       
       <!-- slide source: ../slide.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-7">
+        <div class="slide has_notes slide-7">
           <div class="inner">
             
             <header><h1>2 apk-builder 使用帮助</h1></header>
             
             
-            <section><p><img alt="apk-builder" src=".././slide/apk-builder.png" /></p></section>
+            <section><p><img alt="apk-builder" src=".././slide/apk-builder.png" /></p>
+<p class="notes">git clone http://172.16.100.90/gerrit/sdk-u3d-plugins</p></section>
             
           </div>
           <div class="presenter_notes">
