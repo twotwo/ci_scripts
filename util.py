@@ -88,7 +88,7 @@ class Command(object):
 		if len(err) > 0:
 			logging.error('excute[%s]: %s' %(cmd, err))
 		if len(out) > 0:
-			return out.strip()
+			return out.strip('\n').strip('\t').strip()
 		else:
 			return ''
 
@@ -123,7 +123,7 @@ class Command(object):
 		if is_xcpretty:
 			xcpretty = '| xcpretty'
 		
-		archive='build/demo.xcarchive'
+		archive='build/%s.xcarchive'%scheme
 		
 		archive_cmd='xcodebuild archive -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s -archivePath %(archive_path)s %(xcpretty)s' % {
 			'project_name': project, 
