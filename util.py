@@ -88,7 +88,7 @@ class Command(object):
 		if len(err) > 0:
 			logging.error('excute[%s]: %s' %(cmd, err))
 		if len(out) > 0:
-			return out.strip('\n')
+			return out.strip()
 		else:
 			return ''
 
