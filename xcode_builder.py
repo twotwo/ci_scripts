@@ -8,7 +8,7 @@ File: xcode_builder.py
 Features:
 1. 获取项目版本号
 2. 获取当前svn版本号
-3. 重命名ipa为%(export_path)s/%(scheme_path)s_V%(version)s(%(build)s).ipa
+3. 重命名ipa为%(export_path)s/%(scheme_name)s_V%(version)s(%(build)s).ipa
 """
 
 import argparse
@@ -31,6 +31,8 @@ def read_version():
 
 def main():
 	parser = argparse.ArgumentParser(description='Xcode Builder.')
+	parser.add_argument('-a', dest='app', type=str, default='',
+											help='the IPA file name')
 	parser.add_argument('-p', dest='project', type=str, default='Demo.xcodeproj',
 											help='Xcode Project Folder Name')
 	parser.add_argument('-s', dest='scheme', type=str, default='DemoRelease',
@@ -46,12 +48,16 @@ def main():
 	if args.dry_run: print 'in dry-run mode'
 	build = Command.svn_ver('..')
 	version = read_version()
-	print 'version =',version
+
+	if len(args.app) ==0: args.app = args.scheme
+
+	print 'ipa file =', args.app, 'version =', version
 	# xcodebuild -list
 	Command.xcodebuild_ipa(project=args.project+'.xcodeproj', scheme=args.scheme, export=args.export)
-	rename_cmd = 'mv %(export_path)s/%(scheme_path)s.ipa %(export_path)s/%(scheme_path)s_V%(version)s\\(%(build)s\\).ipa' % {
-			'scheme_path': args.scheme,
+	rename_cmd = 'mv %(export_path)s/%(scheme_name)s.ipa %(export_path)s/%(ipa_file)s_V%(version)s\\(%(build)s\\).ipa' % {
+			'scheme_name': args.scheme,
 			'export_path': args.export,
+			'ipa_file': args.app,
 			'version': version,
 			'build': build
 		}
