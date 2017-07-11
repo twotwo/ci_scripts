@@ -107,14 +107,67 @@ class Command(object):
 		}
 		ant_cmd = 'ant -f %(project_dir)s/build.xml clean %(project_dir)s'% {
 			'project_dir': project, 
-			'build_config': build,
-			'xcpretty': xcpretty
+			'build_config': build
 		}
 
 	@staticmethod
-	def xcodebuild_ipa(project, scheme, export, is_release=True, is_xcpretty=True):
+	def xcodebuild_lib(project, scheme, is_clean=False, is_xcpretty=True):
+		"""xcode 编译 Libary & 编译Framework
+		Xcode: Build Settings -> Math-O Type: Static Libary
+		See Also: http://wiki.li3huo.com/xcodebuild#Build_Library
+		"""
+		if is_clean:
+			(cost, out, err) = Command.excute('xcodebuild clean')
+			print err
+
+		build = 'Release'
+		xcpretty = ''
+		if is_xcpretty:
+			xcpretty = '| xcpretty'
+		
+		# 分别生成手机和模拟器的lib
+		logging.debug('分别生成手机和模拟器的lib...')
+		for sdk, build_dir in (('iphoneos', 'arm'), ('iphonesimulator', 'x86')):
+			build_cmd='xcodebuild -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s only_active_arch=no defines_module=yes -sdk "%(sdk)s" CONFIGURATION_BUILD_DIR=build/%(build_dir)s%(xcpretty)s' % {
+				'project_name': project, 
+				'scheme_name': scheme,
+				'build_config': build,
+				'sdk': sdk,
+				'build_dir': build_dir,
+				'xcpretty': xcpretty
+			}
+			print build_cmd
+			(cost, out, err) = Command.excute(build_cmd)
+			print err
+
+		# merge 2 lib as one
+		logging.debug('merge 2 lib as one...')
+		merge_cmd='lipo -create build/arm/%(scheme_name)s.framework/%(scheme_name)s build/x86/%(scheme_name)s.framework/%(scheme_name)s -output build/merge_lib' % {
+			'scheme_name': scheme
+		}
+		print merge_cmd
+		(cost, out, err) = Command.excute(merge_cmd)
+		print err
+
+		(cost, out, err) = Command.excute('mv build/merge_lib build/arm/%s.framework/%s' % (scheme, scheme) )
+		print err
+
+		(cost, out, err) = Command.excute('mv build/arm/%s.framework/ build/%s.framework' % (scheme, scheme) )
+		print err
+
+		logging.debug('验证framework包含的框架集，应该是"armv7 i386 x86_64 arm64"')
+		(cost, out, err) = Command.excute('lipo -info build/%s.framework/%s' % (scheme, scheme) )
+		print out, err
+		logging.debug(out)
+
+	@staticmethod
+	def xcodebuild_ipa(project, scheme, export, is_clean=False, is_release=True, is_xcpretty=True):
 		"""xcode 8.2+出ipa包的执行命令
 		"""
+		if is_clean:
+			(cost, out, err) = Command.excute('xcodebuild clean')
+			print err
+
 		build = 'Debug'
 		if is_release:
 			build = 'Release'
