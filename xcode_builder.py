@@ -57,7 +57,7 @@ def main():
 	if len(args.ipa) ==0: args.ipa = args.scheme
 
 	if args.action == 'test':
-		pass
+		Command.xcodebuild_test(project=args.project+'.xcodeproj', scheme=args.scheme)
 	elif args.action == 'lib':
 		Command.xcodebuild_lib(project=args.project+'.xcodeproj', scheme=args.scheme, is_clean=True)
 	elif args.action == 'ipa':
