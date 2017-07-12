@@ -111,6 +111,30 @@ class Command(object):
 		}
 
 	@staticmethod
+	def xcodebuild_test(project, scheme, is_clean=True, is_xcpretty=True, report='junit'):
+		"""xcodebuild 执行单元测试
+		report: 使用xcpretty, 生成 JUnit 风格的测试报告(build/reports/junit.xml)
+		"""
+		if is_clean:
+			(cost, out, err) = Command.excute('xcodebuild clean')
+			print err
+
+		xcpretty = ''
+		if is_xcpretty:
+			xcpretty = ' | xcpretty'
+		if report == 'junit':
+			xcpretty = ' | xcpretty -r junit'
+
+		test_cmd='xcodebuild test -project %(project_name)s -scheme %(scheme_name)s -destination "platform=iOS Simulator,name=iPhone SE"%(xcpretty)s' % {
+			'project_name': project, 
+			'scheme_name': scheme,
+			'xcpretty': xcpretty
+		}
+		print test_cmd
+		(cost, out, err) = Command.excute(test_cmd)
+		print err
+
+	@staticmethod
 	def xcodebuild_lib(project, scheme, is_clean=False, is_xcpretty=True):
 		"""xcode 编译 Libary & 编译Framework
 		Xcode: Build Settings -> Math-O Type: Static Libary
@@ -123,12 +147,12 @@ class Command(object):
 		build = 'Release'
 		xcpretty = ''
 		if is_xcpretty:
-			xcpretty = '| xcpretty'
+			xcpretty = ' | xcpretty'
 		
 		# 分别生成手机和模拟器的lib
 		logging.debug('分别生成手机和模拟器的lib...')
 		for sdk, build_dir in (('iphoneos', 'arm'), ('iphonesimulator', 'x86')):
-			build_cmd='xcodebuild -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s only_active_arch=no defines_module=yes -sdk "%(sdk)s" CONFIGURATION_BUILD_DIR=build/%(build_dir)s%(xcpretty)s' % {
+			build_cmd='xcodebuild build -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s only_active_arch=no defines_module=yes -sdk "%(sdk)s" CONFIGURATION_BUILD_DIR=build/%(build_dir)s%(xcpretty)s' % {
 				'project_name': project, 
 				'scheme_name': scheme,
 				'build_config': build,
@@ -174,11 +198,11 @@ class Command(object):
 
 		xcpretty = ''
 		if is_xcpretty:
-			xcpretty = '| xcpretty'
+			xcpretty = ' | xcpretty'
 		
 		archive='build/%s.xcarchive'%scheme
 		
-		archive_cmd='xcodebuild archive -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s -archivePath %(archive_path)s %(xcpretty)s' % {
+		archive_cmd='xcodebuild archive -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s -archivePath %(archive_path)s%(xcpretty)s' % {
 			'project_name': project, 
 			'scheme_name': scheme,
 			'build_config': build,
@@ -189,7 +213,7 @@ class Command(object):
 		(cost, out, err) = Command.excute(archive_cmd)
 		print err
 
-		export_cmd='xcodebuild -exportArchive -archivePath %(archive_path)s -exportPath %(export_path)s -exportOptionsPlist package.plist %(xcpretty)s' % {
+		export_cmd='xcodebuild -exportArchive -archivePath %(archive_path)s -exportPath %(export_path)s -exportOptionsPlist package.plist%(xcpretty)s' % {
 			'export_path': export,
 			'archive_path': archive,
 			'xcpretty': xcpretty
