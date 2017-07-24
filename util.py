@@ -226,6 +226,8 @@ class Command(object):
 	@staticmethod
 	def merge_img(src_img, width, caption, labels, font='/Library/Fonts/Songti.ttc', clean=True):
 		"""Merge Iamges as one. Install ImageMagick(pip install ImageMagick) first.
+		Refer to http://wiki.li3huo.com/ImageMagick
+		Action Step: 
 		1. resize to same width
 		2. add label to img bottom
 		3. 制作标题图片
@@ -249,20 +251,35 @@ class Command(object):
 		cmd = 'convert -resize "%(width)s" "%(src_img)s" %(work_dir)s/w.png' % info
 		(cost, out, err) = Command.excute(cmd)
 		print cmd, 'err=', err
-		# 2. add label to img bottom: from w-[0-n].png to l-[0-n].png
+		# 2. add label to img top: from w-[0-n].png to l-[0-n].png
 		index = 0
 		for label in labels:
 			info['index']=index
 			info['page']=index + 1
 			info['label']=label
 			cmd = '''height=30; width=%(width)s; \\
-			convert %(work_dir)s/w-%(index)s.png -size ${width}x${height} xc:white -append \\
-			-font "%(font)s" -pointsize 48 \\
-			-background white -size x${height} -fill black label:%(page)s -gravity southwest -compose over -composite \\
-			-background white -size x${height} -fill black label:"%(label)s" -gravity southeast -compose over -composite \\
+			convert -size ${width}x${height} xc:white %(work_dir)s/w-%(index)s.png -append \\
+			-font "%(font)s" -pointsize 32 \\
+			-background white -size x${height} -fill black label:%(page)s、 -gravity northwest -compose over -composite \\
+			-background white -size x${height} -fill black label:"%(label)s" -gravity northeast -compose over -composite \\
 			%(work_dir)s/l-%(index)s.png''' % info
 			Command.excute(cmd)
 			index = index +1
+
+		# # 2. add label to img bottom: from w-[0-n].png to l-[0-n].png
+		# index = 0
+		# for label in labels:
+		# 	info['index']=index
+		# 	info['page']=index + 1
+		# 	info['label']=label
+		# 	cmd = '''height=30; width=%(width)s; \\
+		# 	convert %(work_dir)s/w-%(index)s.png -size ${width}x${height} xc:white -append \\
+		# 	-font "%(font)s" -pointsize 48 \\
+		# 	-background white -size x${height} -fill black label:%(page)s -gravity southwest -compose over -composite \\
+		# 	-background white -size x${height} -fill black label:"%(label)s" -gravity southeast -compose over -composite \\
+		# 	%(work_dir)s/l-%(index)s.png''' % info
+		# 	Command.excute(cmd)
+		# 	index = index +1
 		# 3. make caption
 		cmd = 'convert -size %(width)sx60 -gravity Center -background white -fill dodgerblue -strokewidth 2 -stroke blue -undercolor lightblue -font "%(font)s" -density 56 -pointsize 28 caption:"%(caption)s" %(work_dir)s/caption.png' % info
 		(cost, out, err) = Command.excute(cmd)
