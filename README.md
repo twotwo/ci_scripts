@@ -1,5 +1,5 @@
-# apk-builder
-APK build script
+# Python Scripts in CI works
+Continue Integration works , such as build an apk or ipa packages
 
 ## Reference
 
