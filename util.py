@@ -11,11 +11,12 @@ Features:
 3. 当前版本判断： Command.git_ver(dir)/Command.svn_ver(dir)
 4. 基于android工具的出apk包的执行命令: Command.
 5. xcode 8.2+出ipa包的执行命令： Command.xcodebuild_ipa(project, scheme, export)
+6. 合并图片工具： merge_img()
 
 """
 
 import argparse
-import codecs, os, sys
+import codecs, os, sys, shutil
 from subprocess import Popen, PIPE
 
 import time #计算命令执行时长
@@ -221,6 +222,58 @@ class Command(object):
 		print export_cmd
 		(cost, out, err) = Command.excute(export_cmd)
 		print err
+
+	@staticmethod
+	def merge_img(src_img, width, caption, labels, font='/Library/Fonts/Songti.ttc', clean=True):
+		"""Merge Iamges as one. Install ImageMagick(pip install ImageMagick) first.
+		1. resize to same width
+		2. add label to img bottom
+		3. 制作标题图片
+		4. 水平拼图
+		"""
+		
+
+		# params for convert 
+		info = {
+				'work_dir':'./tmp/%d'%os.getpid(), 
+				'src_img':src_img, 
+				'width':width, 
+				'caption':caption,
+				'font':font, }
+
+		# create tmp dir
+		if not os.path.exists('./tmp'): os.mkdir('./tmp')
+		os.mkdir(info['work_dir'])
+
+		# 1. resize to same width: w-[0-n].png
+		cmd = 'convert -resize "%(width)s" "%(src_img)s" %(work_dir)s/w.png' % info
+		(cost, out, err) = Command.excute(cmd)
+		print cmd, 'err=', err
+		# 2. add label to img bottom: from w-[0-n].png to l-[0-n].png
+		index = 0
+		for label in labels:
+			info['index']=index
+			info['page']=index + 1
+			info['label']=label
+			cmd = '''height=30; width=%(width)s; \\
+			convert %(work_dir)s/w-%(index)s.png -size ${width}x${height} xc:white -append \\
+			-font "%(font)s" -pointsize 48 \\
+			-background white -size x${height} -fill black label:%(page)s -gravity southwest -compose over -composite \\
+			-background white -size x${height} -fill black label:"%(label)s" -gravity southeast -compose over -composite \\
+			%(work_dir)s/l-%(index)s.png''' % info
+			Command.excute(cmd)
+			index = index +1
+		# 3. make caption
+		cmd = 'convert -size %(width)sx60 -gravity Center -background white -fill dodgerblue -strokewidth 2 -stroke blue -undercolor lightblue -font "%(font)s" -density 56 -pointsize 28 caption:"%(caption)s" %(work_dir)s/caption.png' % info
+		(cost, out, err) = Command.excute(cmd)
+		print cmd
+
+		# 4. append vertically
+		cmd = 'convert -append %(work_dir)s/caption.png %(work_dir)s/l-[0-9].png %(work_dir)s/l-[1-9][0-9].png %(work_dir)s/caption.png vertical.png'% info #'convert -append caption.png l-[0-%d].png caption.png vertical.png' % (index -1)
+		(cost, out, err) = Command.excute(cmd)
+		print cmd
+
+		if clean: shutil.rmtree(info['work_dir'])
 
 def test():
 	if Command.isMacSystem(): print 'launch on OS X!'
