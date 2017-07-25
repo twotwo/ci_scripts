@@ -31,9 +31,11 @@ def main():
 	parser = argparse.ArgumentParser(description='Xcode Builder.')
 	parser.add_argument('-a', dest='action', type=str, default='merge', choices=('test', 'merge'), 
 											help='Action perform')
-	parser.add_argument('-s', dest='src_img', type=str, default='i_[1-9].png i_[1-9][0-9].png',
-											help='image patern')
-	parser.add_argument('-w', dest='export', type=int, default=300,
+	parser.add_argument('-t', dest='img_type', type=str, default='jpg',
+											help='image type')
+	parser.add_argument('-n', dest='img_name', type=str, default='',
+											help='image name: <img_name>_[1-9].<img_type> <img_name>_[1-9][0-9].<img_type>')
+	parser.add_argument('-w', dest='img_width', type=int, default=720,
 											help='Width of the merge image')
 	parser.add_argument('-c', dest='caption', type=str, default='标题： 这是一个测试',
 											help='image caption')
@@ -46,13 +48,19 @@ def main():
 
 	args = parser.parse_args()
 
+	img_pattern = '%(img_name)s_[1-9].%(img_type)s %(img_name)s_[1-9][0-9].%(img_type)s' % {
+					'img_name': args.img_name,
+					'img_type': args.img_type
+				}
+	print 'img_pattern=', img_pattern
 	# test()
 	index = 1
 	for lable in args.labels.split(';'):
 		print index, lable
 		index = index + 1
-	# python /opt/local/ide/git_storage/github/apk-builder/merge_img.py -s "j_[0-8].jpg" -c 金立礼包码展示逻辑 -l "未展开的悬浮球;展开的悬浮球（选择礼包）;礼包列表标签，抢“独家礼包”;获取成功：展示“独家礼包”详情;已获得的礼包列表（我的礼包）;礼包列表中直接复制激活码;礼包详情页;礼包详情页复制并返回游戏" --clean
-	Command.merge_img(src_img=args.src_img, width=300, caption=args.caption, labels=args.labels.split(';'), clean=args.clean)
+	# for f in *.jpg; do mv $f g_${f} ; done
+	# python /opt/local/ide/git_storage/github/ci_scripts/merge_img.py -n g -c "caption of these images" -l "1;2;3..split by ;" --clean
+	Command.merge_img(src_img=img_pattern, width=args.img_width, caption=args.caption, labels=args.labels.split(';'), clean=args.clean)
 	
 
 
