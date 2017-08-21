@@ -26,9 +26,16 @@ import platform
 
 
 class Command(object):
-	# config a log
-	logging.basicConfig(filename='./excute.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
-	logging.info('launch on %s'%platform.system())
+	# config command logger
+	# reffer to http://wiki.li3huo.com/python_lib_logging#Logger_Objects
+	logger = logging.getLogger('Command')
+	# create console handler and set level to debug
+	ch = logging.StreamHandler()
+	ch.setLevel(logging.DEBUG)
+	# add formatter to ch
+	ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+	# add ch to logger
+	logger.addHandler(ch)
 
 	@staticmethod
 	def isMacSystem():
@@ -46,14 +53,14 @@ class Command(object):
 	def excute(cmd, dry_run=False):
 		start_point = time.time()
 		if dry_run: 
-			logging.warn('dry-run mode on[%s]'%cmd)
+			Command.logger.warn('dry-run mode on[%s]'%cmd)
 			return (0, cmd, '')
 		else:
-			logging.debug(cmd)
+			Command.logger.debug(cmd)
 		process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
 		out, err = process.communicate()
 		if len(err) > 0:
-			logging.error('cmd=%s, err=%s' %(cmd, err))
+			Command.logger.error('cmd=%s, err=%s' %(cmd, err))
 		return (time.time()-start_point, out, err)
 
 	@staticmethod
@@ -64,15 +71,14 @@ class Command(object):
 		cmd = 'git -C %s pull' % git_dir
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0:
-			logging.error('excute[%s]: %s' %(cmd, err))
+			Command.logger.error('excute[%s]: %s' %(cmd, err))
 		cmd = 'git -C %s rev-list --count HEAD' % git_dir
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0:
-			logging.error('excute[%s]: %s' %(cmd, err))
-		if len(out) > 0:
-			return out.strip('\n')
-		else:
+			Command.logger.error('excute[%s]: %s' %(cmd, err))
 			return ''
+		else:
+			return out.strip('\n')
 
 	@staticmethod
 	def svn_ver(svn_dir):
@@ -83,11 +89,11 @@ class Command(object):
 		cmd = 'svn up %s' % svn_dir
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0:
-			logging.error('excute[%s]: %s' %(cmd, err))
+			Command.logger.error('excute[%s]: %s' %(cmd, err))
 		cmd = 'svn info --show-item last-changed-revision %s' % svn_dir
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0:
-			logging.error('excute[%s]: %s' %(cmd, err))
+			Command.logger.error('excute[%s]: %s' %(cmd, err))
 		if len(out) > 0:
 			return out.strip()
 		else:
@@ -151,7 +157,7 @@ class Command(object):
 			xcpretty = ' | xcpretty'
 		
 		# 分别生成手机和模拟器的lib
-		logging.debug('分别生成手机和模拟器的lib...')
+		Command.logger.debug('分别生成手机和模拟器的lib...')
 		for sdk, build_dir in (('iphoneos', 'arm'), ('iphonesimulator', 'x86')):
 			build_cmd='xcodebuild build -project %(project_name)s -scheme %(scheme_name)s -configuration %(build_config)s only_active_arch=no defines_module=yes -sdk "%(sdk)s" CONFIGURATION_BUILD_DIR=build/%(build_dir)s%(xcpretty)s' % {
 				'project_name': project, 
@@ -166,7 +172,7 @@ class Command(object):
 			print err
 
 		# merge 2 lib as one
-		logging.debug('merge 2 lib as one...')
+		Command.logger.debug('merge 2 lib as one...')
 		merge_cmd='lipo -create build/arm/%(scheme_name)s.framework/%(scheme_name)s build/x86/%(scheme_name)s.framework/%(scheme_name)s -output build/merge_lib' % {
 			'scheme_name': scheme
 		}
@@ -180,10 +186,10 @@ class Command(object):
 		(cost, out, err) = Command.excute('mv build/arm/%s.framework/ build/%s.framework' % (scheme, scheme) )
 		print err
 
-		logging.debug('验证framework包含的框架集，应该是"armv7 i386 x86_64 arm64"')
+		Command.logger.debug('验证framework包含的框架集，应该是"armv7 i386 x86_64 arm64"')
 		(cost, out, err) = Command.excute('lipo -info build/%s.framework/%s' % (scheme, scheme) )
 		print out, err
-		logging.debug(out)
+		Command.logger.debug(out)
 
 	@staticmethod
 	def xcodebuild_ipa(project, scheme, export, is_clean=False, is_release=True, is_xcpretty=True):
@@ -292,6 +298,160 @@ class Command(object):
 
 		if clean: shutil.rmtree(info['work_dir'])
 
+class AgentBuilder(object):
+	"""Android Agent 项目专用打包类
+	"""
+	logger = logging.getLogger('AgentBuilder')
+	def __init__(self, ini_file, dry_run=False):
+		self.dry_run = dry_run
+
+		self.build_info = []
+
+		import ConfigParser
+		# config = ConfigParser.RawConfigParser(allow_no_value=True)
+		config = ConfigParser.ConfigParser()
+		config.read(ini_file)
+		root_dir = config.get('base', 'root_dir')
+
+		self.lib_base_dir = config.get('base', 'lib_base_dir', 0, {'root_dir': root_dir})
+		self.channels_dir = config.get('base', 'channels_dir', 0, {'root_dir': root_dir})
+
+		self.demo_dir = config.get('demo', 'demo_dir', 0, {'root_dir': root_dir})
+		from datetime import date
+		self.apk_dir = config.get('demo', 'apk_dir', 0, {'root_dir': root_dir, 'day':date.today().strftime('%m%d')})
+		
+		self.plugin_dir = config.get('plugins', 'plugin_dir', 0, {'root_dir': root_dir})
+
+	def init(self):
+		# init output dirs
+		if os.path.exists(self.demo_dir):
+			Command.excute('rm -rf %s' % self.demo_dir)
+		os.makedirs(self.demo_dir)
+		if not os.path.exists(self.apk_dir):
+			os.makedirs(self.apk_dir)
+
+	def build_baselib(self):
+		# cp -R lib_base_dir demo_dir/lib_base
+		Command.excute('cp -R %s %s/lib_base'%(self.lib_base_dir, self.demo_dir) )
+
+		# android update & ant debug
+		Command.excute('android update project -p %s/lib_base -n MainActivity -t android-21' % self.demo_dir)
+		Command.excute('ant -f %s/lib_base/build.xml clean debug' % self.demo_dir)
+
+		# cp demo_dir/lib_base/bin/classes.jar demo_dir/plugin_base-revision.jar
+		revision = Command.svn_ver(self.lib_base_dir)
+		base_jar = os.path.join(self.demo_dir, 'plugin_base-r%s.jar' % revision)
+		from_jar = os.path.join(self.demo_dir, 'lib_base/bin/classes.jar')
+		cmd = 'cp %s %s'% (from_jar, base_jar)
+
+		print '[%s] create plugin base lib. %s %s'%Command.excute(cmd)
+
+	def build_channel_apks(self, name):
+		"""build channel apks to apk_dir
+		name: all or channel name in project name
+		"""
+		# project name: FLSDK_channel_<channel>_combine
+		for project in os.listdir(self.channels_dir):
+			if not os.path.isdir( os.path.join(self.channels_dir, project) ): continue
+			if project.find('.') == 0: continue
+
+			# verify channel name
+			if len(project.split('_'))!=4:
+				print 'unknown project[%s]!'%project
+				logger.error( 'unknown project[%s]!'%project )
+				continue
+			channel = project.split('_')[2]
+
+			# 3.2 build all or certain channel
+			if 'all' == name or channel == name:
+				self.__build_lib_and_demoapk(project, channel, 'lib_base')
+		
+	def __build_lib_and_demoapk(self, project, channel, library):
+		"""给svn中最新的适配代码打包，生成插件类库和demo apk
+		project 	: project under demo;
+		channel 	: channel name in project;
+		library     : Directory of an Android library to add;
+		"""
+		status_jar = False # build status of lib
+		status_apk = False # build status of apk
+		code_dir = os.path.join(self.channels_dir, project)
+		sa_dir = os.path.join(self.demo_dir, project)
+
+		if os.path.exists(sa_dir) :
+			Command.excute('rm -rf %s'%sa_dir )
+		Command.excute('cp -R %s %s'%(code_dir, self.demo_dir), self.dry_run )
+
+		game=os.environ.get('game')
+		channel_ver = 'unknown'
+		if os.path.exists( os.path.join(sa_dir,'SDKVersion.txt') ) :
+			channel_ver = open(os.path.join(sa_dir,'SDKVersion.txt')).readline().strip()
+
+		AgentBuilder.logger.info( 'demo_dir=%s, game=%s, channel=%s, ver=%s'%(self.demo_dir, game, channel, channel_ver) )
+		
+		# os.chdir(sa_dir)
+		AgentBuilder.logger.info('===== [%s] Build Start: %s ' % (project, os.getcwd()) )
+
+		revision = Command.svn_ver(code_dir)
+		print 'build %s@r%s' % (sa_dir, revision)
+
+		print 'create android project ... '
+		cmd = 'android update project -p %s -n MainActivity -t android-21'%sa_dir
+		if library:
+			print Command.excute('cp ant.properties %s'%sa_dir)
+			print Command.excute('rm %s/project.properties'%sa_dir)
+			cmd = 'android update project -l ../%s -p %s -n MainActivity -t android-21' % (library, sa_dir)
+			# f = open('project.properties', 'w') #'r', 'w' or 'a'
+			# f.write(project_properties)
+			# f.close
+		 # -t --target     : Target ID to set for the project.
+		 # android-21 Name: Android 5.0.1
+		 # android-22 Name: Android 5.1.1
+		build='debug'
+		if os.path.exists( os.path.join(sa_dir,'%s.properties'%game) ) :
+			print Command.excute('mv %s %s'%(os.path.join(sa_dir,'%s.properties'%game), os.path.join(sa_dir,'ant.properties')))
+			build='release'
+		(cost, out, err) = Command.excute(cmd)
+		if len(err) > 0: 
+			status = '[failed]'
+			print status, cmd , err
+		else:
+			status = '[ok]'
+			print status, cmd
+
+		print 'build android project ... '
+		cmd = 'ant -f %s/build.xml clean %s'%(sa_dir,build)
+		(cost, out, err) = Command.excute(cmd, self.dry_run)
+		if len(err) > 0: 
+			status = '[failed]'
+			print status, cmd , err
+		else:
+			status = '[ok]'
+			print status, cmd
+
+		if '[ok]' == status:
+			# build apk, such as 360_c1.9.2_r168988_b62.apk
+			version_info= 'c%s_r%s_b%s' % (channel_ver, revision, os.environ.get('BUILD_NUMBER'))
+			(cost, out, err) = Command.excute('cp %(project_dir)s/bin/MainActivity-%(build_type)s.apk %(dist_dir)s/%(apk_name)s.apk' % {
+				'project_dir': sa_dir,
+				'dist_dir': self.apk_dir,
+				'apk_name': channel+'\('+build+'\)_'+version_info,
+				'build_type': build
+				})
+			if len(err) > 0: 
+				print err
+			else:
+				status_apk = True
+
+			# build plugin lib ,such as plugin_360_c1.9.2_r168988_b62.jar
+			if not os.path.exists( os.path.join(sa_dir,'plugin_task.xml') ):
+				Command.excute('cp plugin_task.xml %s'% sa_dir) 
+			(cost, out, err) = Command.excute('ant -f %s/plugin_task.xml -Drevision=%s -Dchannel=%s'% (sa_dir, version_info, channel ))
+			if len(err) == 0: status_jar = True
+
+		self.build_info.append('build [%s] jar: %s, apk: %s, revision: %s' % (channel, status_jar, status_apk, revision))
+
+
+
 def test():
 	if Command.isMacSystem(): print 'launch on OS X!'
 	if Command.isLinuxSystem(): print 'launch on Linux!'
@@ -299,8 +459,8 @@ def test():
 
 	try:
 		print 'current dir git version =', Command.git_ver(".")
-	except:
-		pass
+	except Exception, ex:
+		print '\nCatch Exception: ', ex
 
 	if len(sys.argv) >1:
 		print 'svn dir =', sys.argv[1], 'version =', Command.svn_ver(sys.argv[1])
@@ -308,4 +468,5 @@ def test():
 		print 'add svn path'
 
 if __name__ == '__main__':
+	logging.basicConfig(filename='./command.log', level=logging.DEBUG, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
 	test()
