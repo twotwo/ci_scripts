@@ -48,7 +48,7 @@ def main():
 
 	args = parser.parse_args()
 
-	img_pattern = '%(img_name)s_[1-9].%(img_type)s %(img_name)s_[1-9][0-9].%(img_type)s' % {
+	img_pattern = '%(img_name)s_[0-9].%(img_type)s %(img_name)s_[1-9][0-9].%(img_type)s' % {
 					'img_name': args.img_name,
 					'img_type': args.img_type
 				}

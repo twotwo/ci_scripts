@@ -38,6 +38,10 @@ class Command(object):
 	logger.addHandler(ch)
 
 	@staticmethod
+	def set_log_level(level):
+		Command.logger.setLevel(level)
+
+	@staticmethod
 	def isMacSystem():
 		return 'Darwin' in platform.system()
 
@@ -453,9 +457,14 @@ class AgentBuilder(object):
 
 
 def test():
-	if Command.isMacSystem(): print 'launch on OS X!'
+	if Command.isMacSystem(): 
+		print 'launch on OS X!'
+		Command.set_log_level(logging.DEBUG)
+		logging.debug(Command.excute('uname -a'))
 	if Command.isLinuxSystem(): print 'launch on Linux!'
 	if Command.isWindowsSystem(): print 'launch on Windows!'
+
+
 
 	try:
 		print 'current dir git version =', Command.git_ver(".")
@@ -468,5 +477,5 @@ def test():
 		print 'add svn path'
 
 if __name__ == '__main__':
-	logging.basicConfig(filename='./command.log', level=logging.DEBUG, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
+	logging.basicConfig(filename='./command.log', level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
 	test()

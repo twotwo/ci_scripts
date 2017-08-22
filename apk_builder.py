@@ -48,6 +48,7 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 应用举例：g20_exit/g20_noexit
 插件举例：p23 - 对应的git revision
 	"""
+	Command.set_log_level(logging.DEBUG)
 	status = 'init'
 
 	game_dir = args.src
@@ -91,22 +92,22 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 
 	print Command.excute('android update project -p %s -n %s -t %s' % (apk_dir, apk_name, args.target), args.dry_run)
 	(cost, out, err) = Command.excute('ant -f %s/build.xml clean release' % apk_dir, args.dry_run)
-	status = 'build'
+	status = 'build apk'
 	logging.info('[%s] Build Game Package, channel=%s, err=%s' % (status, channel, err) )
 	
-	apk_to = apk_name+'-p'+revision+'-release_vc'+args.versioncode+ '.apk'
+	apk_save_to = apk_name+'-p'+revision+'-release_vc'+args.versioncode+ '.apk'
 
-	status = 'save'
-	cmd_cp_apk = 'cp %s/bin/%s %s'%(apk_dir, apk_name+'-release.apk', apk_to)
+	status = 'cp to build dir'
+	cmd_cp_apk = 'cp %s/bin/%s %s'%(apk_dir, apk_name+'-release.apk', apk_save_to)
 	(cost, out, err) = Command.excute(cmd_cp_apk, args.dry_run)
 	logging.info('[%s] Save Game Package, cmd=%s, err=%s' % (status, cmd_cp_apk, err) )
 
-	status = 'save with build number'
+	status = 'mv to jenkins workspace'
 	if None != os.environ.get('BUILD_NUMBER'):
-		apk_to = os.path.join(os.environ.get('WORKSPACE'),'game_apks',os.environ.get('BUILD_NUMBER'))
-		if not os.path.exists(apk_to):
-			os.mkdir(apk_to)
-		cmd_mv_apk = 'mv %s %s'%(apk_name+'-release.apk', apk_to)
+		apk_mv_to = os.path.join(os.environ.get('WORKSPACE'),'game_apks',os.environ.get('BUILD_NUMBER'))
+		if not os.path.exists(apk_mv_to):
+			os.mkdir(apk_mv_to)
+		cmd_mv_apk = 'mv %s %s'%(apk_save_to, apk_mv_to)
 		(cost, out, err) = Command.excute(cmd_mv_apk, args.dry_run)
 		logging.info('[%s] Move Game Package, cmd=%s, err=%s' % (status, cmd_mv_apk, err) )
 
@@ -140,6 +141,7 @@ def build_agent_demos(args):
 	"""sdk-agent适配各个渠道的demo，一锅出多个Android apk和适配层类库
 	python apk_builder.py -c demo -s demo.ini -ch tencent
 	"""
+	Command.set_log_level(logging.DEBUG)
 	builder = AgentBuilder(args.src, args.dry_run)
 	builder.init()
 	
