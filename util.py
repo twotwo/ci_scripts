@@ -21,6 +21,7 @@ from subprocess import Popen, PIPE
 
 import time #计算命令执行时长
 import logging
+import logging.config
 
 import platform
 
@@ -28,7 +29,7 @@ import platform
 class Command(object):
 	# config command logger
 	# reffer to http://wiki.li3huo.com/python_lib_logging#Logger_Objects
-	logger = logging.getLogger('Command')
+	logger = logging.getLogger('command')
 	# create console handler and set level to debug
 	ch = logging.StreamHandler()
 	ch.setLevel(logging.DEBUG)
@@ -128,7 +129,6 @@ class Command(object):
 		"""
 		if is_clean:
 			(cost, out, err) = Command.excute('xcodebuild clean')
-			print err
 
 		xcpretty = ''
 		if is_xcpretty:
@@ -141,9 +141,9 @@ class Command(object):
 			'scheme_name': scheme,
 			'xcpretty': xcpretty
 		}
-		print test_cmd
+
 		(cost, out, err) = Command.excute(test_cmd)
-		print err
+
 
 	@staticmethod
 	def xcodebuild_lib(project, scheme, is_clean=False, is_xcpretty=True):
@@ -153,7 +153,6 @@ class Command(object):
 		"""
 		if is_clean:
 			(cost, out, err) = Command.excute('xcodebuild clean')
-			print err
 
 		build = 'Release'
 		xcpretty = ''
@@ -171,28 +170,23 @@ class Command(object):
 				'build_dir': build_dir,
 				'xcpretty': xcpretty
 			}
-			print build_cmd
+
 			(cost, out, err) = Command.excute(build_cmd)
-			print err
 
 		# merge 2 lib as one
 		Command.logger.debug('merge 2 lib as one...')
 		merge_cmd='lipo -create build/arm/%(scheme_name)s.framework/%(scheme_name)s build/x86/%(scheme_name)s.framework/%(scheme_name)s -output build/merge_lib' % {
 			'scheme_name': scheme
 		}
-		print merge_cmd
+
 		(cost, out, err) = Command.excute(merge_cmd)
-		print err
 
 		(cost, out, err) = Command.excute('mv build/merge_lib build/arm/%s.framework/%s' % (scheme, scheme) )
-		print err
 
 		(cost, out, err) = Command.excute('mv build/arm/%s.framework/ build/%s.framework' % (scheme, scheme) )
-		print err
 
 		Command.logger.debug('验证framework包含的框架集，应该是"armv7 i386 x86_64 arm64"')
 		(cost, out, err) = Command.excute('lipo -info build/%s.framework/%s' % (scheme, scheme) )
-		print out, err
 		Command.logger.debug(out)
 
 	@staticmethod
@@ -201,7 +195,6 @@ class Command(object):
 		"""
 		if is_clean:
 			(cost, out, err) = Command.excute('xcodebuild clean')
-			print err
 
 		build = 'Debug'
 		if is_release:
@@ -220,18 +213,16 @@ class Command(object):
 			'archive_path': archive,
 			'xcpretty': xcpretty
 		}
-		print archive_cmd
+
 		(cost, out, err) = Command.excute(archive_cmd)
-		print err
 
 		export_cmd='xcodebuild -exportArchive -archivePath %(archive_path)s -exportPath %(export_path)s -exportOptionsPlist package.plist%(xcpretty)s' % {
 			'export_path': export,
 			'archive_path': archive,
 			'xcpretty': xcpretty
 		}
-		print export_cmd
+
 		(cost, out, err) = Command.excute(export_cmd)
-		print err
 
 	@staticmethod
 	def merge_img(src_img, width, caption, labels, font='/Library/Fonts/Songti.ttc', clean=True):
@@ -260,7 +251,7 @@ class Command(object):
 		# 1. resize to same width: w-[0-n].png
 		cmd = 'convert -resize "%(width)s" "%(src_img)s" %(work_dir)s/w.png' % info
 		(cost, out, err) = Command.excute(cmd)
-		print cmd, 'err=', err
+
 		# 2. add label to img top: from w-[0-n].png to l-[0-n].png
 		index = 0
 		for label in labels:
@@ -293,12 +284,10 @@ class Command(object):
 		# 3. make caption
 		cmd = 'convert -size %(width)sx60 -gravity Center -background white -fill dodgerblue -strokewidth 2 -stroke blue -undercolor lightblue -font "%(font)s" -density 56 -pointsize 28 caption:"%(caption)s" %(work_dir)s/caption.png' % info
 		(cost, out, err) = Command.excute(cmd)
-		print cmd
 
 		# 4. append vertically
 		cmd = 'convert -append %(work_dir)s/caption.png %(work_dir)s/l-[0-9].png %(work_dir)s/l-[1-9][0-9].png %(work_dir)s/caption.png vertical.png'% info #'convert -append caption.png l-[0-%d].png caption.png vertical.png' % (index -1)
 		(cost, out, err) = Command.excute(cmd)
-		print cmd
 
 		if clean: shutil.rmtree(info['work_dir'])
 
@@ -310,6 +299,7 @@ class AgentBuilder(object):
 		self.dry_run = dry_run
 
 		self.build_info = []
+		self.logger = logging.getLogger('agentBuilder')
 
 		import ConfigParser
 		# config = ConfigParser.RawConfigParser(allow_no_value=True)
@@ -347,8 +337,8 @@ class AgentBuilder(object):
 		base_jar = os.path.join(self.demo_dir, 'plugin_base-r%s.jar' % revision)
 		from_jar = os.path.join(self.demo_dir, 'lib_base/bin/classes.jar')
 		cmd = 'cp %s %s'% (from_jar, base_jar)
-
-		print '[%s] create plugin base lib. %s %s'%Command.excute(cmd)
+		(cost, out, err) = Command.excute(cmd)
+		self.logger.info('Create plugin base lib.')
 
 	def build_channel_apks(self, name):
 		"""build channel apks to apk_dir
@@ -356,18 +346,21 @@ class AgentBuilder(object):
 		"""
 		# project name: FLSDK_channel_<channel>_combine
 		for project in os.listdir(self.channels_dir):
-			if not os.path.isdir( os.path.join(self.channels_dir, project) ): continue
+			if not os.path.isdir( os.path.join(self.channels_dir, project) ):
+				self.logger.warn('[%s] is not a directory!'%os.path.join(self.channels_dir, project))
+				continue
 			if project.find('.') == 0: continue
 
 			# verify channel name
 			if len(project.split('_'))!=4:
 				print 'unknown project[%s]!'%project
-				logger.error( 'unknown project[%s]!'%project )
+				self.logger.error( 'unknown project[%s]!'%project )
 				continue
 			channel = project.split('_')[2]
 
 			# 3.2 build all or certain channel
 			if 'all' == name or channel == name:
+				self.logger.info('build [%s] channel...'%channel)
 				self.__build_lib_and_demoapk(project, channel, 'lib_base')
 		
 	def __build_lib_and_demoapk(self, project, channel, library):
@@ -396,13 +389,13 @@ class AgentBuilder(object):
 		AgentBuilder.logger.info('===== [%s] Build Start: %s ' % (project, os.getcwd()) )
 
 		revision = Command.svn_ver(code_dir)
-		print 'build %s@r%s' % (sa_dir, revision)
+		self.logger.info('build %s@r%s' % (sa_dir, revision))
 
-		print 'create android project ... '
+		self.logger.info('create android project ... ')
 		cmd = 'android update project -p %s -n MainActivity -t android-21'%sa_dir
 		if library:
-			print Command.excute('cp ant.properties %s'%sa_dir)
-			print Command.excute('rm %s/project.properties'%sa_dir)
+			(cost, out, err) = Command.excute('cp ant.properties %s'%sa_dir)
+			(cost, out, err) = Command.excute('rm %s/project.properties'%sa_dir)
 			cmd = 'android update project -l ../%s -p %s -n MainActivity -t android-21' % (library, sa_dir)
 			# f = open('project.properties', 'w') #'r', 'w' or 'a'
 			# f.write(project_properties)
@@ -412,25 +405,21 @@ class AgentBuilder(object):
 		 # android-22 Name: Android 5.1.1
 		build='debug'
 		if os.path.exists( os.path.join(sa_dir,'%s.properties'%game) ) :
-			print Command.excute('mv %s %s'%(os.path.join(sa_dir,'%s.properties'%game), os.path.join(sa_dir,'ant.properties')))
+			(cost, out, err) = Command.excute('mv %s %s'%(os.path.join(sa_dir,'%s.properties'%game), os.path.join(sa_dir,'ant.properties')))
 			build='release'
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0: 
 			status = '[failed]'
-			print status, cmd , err
 		else:
 			status = '[ok]'
-			print status, cmd
 
-		print 'build android project ... '
+		self.logger.info('build android project ... ')
 		cmd = 'ant -f %s/build.xml clean %s'%(sa_dir,build)
 		(cost, out, err) = Command.excute(cmd, self.dry_run)
 		if len(err) > 0: 
 			status = '[failed]'
-			print status, cmd , err
 		else:
 			status = '[ok]'
-			print status, cmd
 
 		if '[ok]' == status:
 			# build apk, such as 360_c1.9.2_r168988_b62.apk
@@ -441,10 +430,7 @@ class AgentBuilder(object):
 				'apk_name': channel+'\('+build+'\)_'+version_info,
 				'build_type': build
 				})
-			if len(err) > 0: 
-				print err
-			else:
-				status_apk = True
+			if len(err) == 0: status_apk = True
 
 			# build plugin lib ,such as plugin_360_c1.9.2_r168988_b62.jar
 			if not os.path.exists( os.path.join(sa_dir,'plugin_task.xml') ):
@@ -455,27 +441,23 @@ class AgentBuilder(object):
 		self.build_info.append('build [%s] jar: %s, apk: %s, revision: %s' % (channel, status_jar, status_apk, revision))
 
 
-
 def test():
 	if Command.isMacSystem(): 
-		print 'launch on OS X!'
-		Command.set_log_level(logging.DEBUG)
-		logging.debug(Command.excute('uname -a'))
-	if Command.isLinuxSystem(): print 'launch on Linux!'
-	if Command.isWindowsSystem(): print 'launch on Windows!'
-
-
+		logging.info('launch on OS X!')
+	if Command.isLinuxSystem(): logging.info('launch on Linux!')
+	if Command.isWindowsSystem(): logging.info('launch on Windows!')
 
 	try:
-		print 'current dir git version =', Command.git_ver(".")
+		logging.info('current dir git version = '+Command.git_ver("."))
 	except Exception, ex:
-		print '\nCatch Exception: ', ex
+		logging.error('Catch Exception: '+ ex)
 
 	if len(sys.argv) >1:
-		print 'svn dir =', sys.argv[1], 'version =', Command.svn_ver(sys.argv[1])
+		logging.debug('svn dir = %s, version = %s' % (sys.argv[1], Command.svn_ver(sys.argv[1])))
 	else:
-		print 'add svn path'
+		logging.debug('pls add svn path')
 
 if __name__ == '__main__':
-	logging.basicConfig(filename='./command.log', level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
+	logging.config.fileConfig("./logging.conf")
+	# logging.basicConfig(filename='./command.log', level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
 	test()

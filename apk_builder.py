@@ -13,7 +13,7 @@ Features:
 from util import Command, AgentBuilder
 
 import argparse
-import logging
+import logging, logging.config
 import os, sys
 
 def test():
@@ -56,7 +56,7 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 
 	apk_dir = os.path.join(os.getcwd(),'build_%s'%channel)
 	plugin_dir = sys.path[0]
-	logging.info( '[%s]plugin_dir = %s, apk_dir = %s' % (status, plugin_dir, apk_dir) ) 
+	logging.info( '[%s] running_dir = %s, plugin_dir = %s, building_dir = %s' % (status, os.getcwd(), plugin_dir, apk_dir) ) 
 
 	revision = Command.git_ver(plugin_dir)
 
@@ -66,50 +66,56 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 
 	if os.path.exists(apk_dir):
 		print 'apk_dir exists, you should delete before build.'
-		return
+		return -1
 
 	apk_name = 	channel +'-'+ os.path.basename(game_dir)
 	
 	# 拷贝母包
 	status = 'copy'
 	(cost, out, err) = Command.excute('cp -R %s %s' % (game_dir, apk_dir), args.dry_run)
-	logging.info( '[%s]from_dir = %s, to_dir = %s' % (status, game_dir, apk_dir) ) 
+	logging.info( '[%s] from_dir = %s, to_dir = %s' % (status, game_dir, apk_dir) ) 
 
 	# 母包初始化
+	logging.info( '[clean] Clean and Init Project...')
 	clean_and_init_project(apk_dir)
+
 	# cp channel keystore & ant.properties
+	logging.info( '[merge] Add build config for channel[%s] to Project...'%channel )
 	keystore = os.path.join(plugin_dir,'keys.%s/%s.keystore'%(args.app,channel))
 	ant_p = os.path.join(plugin_dir,'keys.%s/ant_%s.properties'%(args.app,channel))
 	if os.path.exists(keystore) and os.path.exists(ant_p):
 		(cost, out, err) = Command.excute('cp %s %s' % (keystore, apk_dir), args.dry_run)
-		print Command.excute('cp %s %s/ant.properties' % (ant_p, apk_dir), args.dry_run)
+		(cost, out, err) = Command.excute('cp %s %s/ant.properties' % (ant_p, apk_dir), args.dry_run)
 
 	(cost, out, err) = Command.excute('cp -Rv %s/plugin_%s/* %s' % (plugin_dir, channel, apk_dir), args.dry_run)
 	# change versionCode&versionName in AndroidManifest.xml
 	cmd = '''sed -i.bak -r '{s/android:versionCode=\s*\"[0-9]{1,}\"/android:versionCode=\"%s\"/g;s/android:versionName=\s*\"[^"]+\"/android:versionName=\"%s\"/g}' %s/AndroidManifest.xml''' % (args.versioncode, args.versionname, apk_dir)
 	(cost, out, err) = Command.excute(cmd)
-	print cmd
 
-	print Command.excute('android update project -p %s -n %s -t %s' % (apk_dir, apk_name, args.target), args.dry_run)
+	status = 'build'
+	(cost, out, err) = Command.excute('android update project -p %s -n %s -t %s' % (apk_dir, apk_name, args.target), args.dry_run)
 	(cost, out, err) = Command.excute('ant -f %s/build.xml clean release' % apk_dir, args.dry_run)
-	status = 'build apk'
-	logging.info('[%s] Build Game Package, channel=%s, err=%s' % (status, channel, err) )
+	logging.info('[%s] Build Project to APK, channel=%s, err=%s' % (status, channel, err) )
 	
 	apk_save_to = apk_name+'-p'+revision+'-release_vc'+args.versioncode+ '.apk'
 
-	status = 'cp to build dir'
+	status = 'cp'
 	cmd_cp_apk = 'cp %s/bin/%s %s'%(apk_dir, apk_name+'-release.apk', apk_save_to)
 	(cost, out, err) = Command.excute(cmd_cp_apk, args.dry_run)
-	logging.info('[%s] Save Game Package, cmd=%s, err=%s' % (status, cmd_cp_apk, err) )
+	logging.info('[%s] cp apk to running_dir, cmd=%s, err=%s' % (status, cmd_cp_apk, err) )
 
-	status = 'mv to jenkins workspace'
+	status = 'mv'
 	if None != os.environ.get('BUILD_NUMBER'):
 		apk_mv_to = os.path.join(os.environ.get('WORKSPACE'),'game_apks',os.environ.get('BUILD_NUMBER'))
 		if not os.path.exists(apk_mv_to):
 			os.mkdir(apk_mv_to)
 		cmd_mv_apk = 'mv %s %s'%(apk_save_to, apk_mv_to)
 		(cost, out, err) = Command.excute(cmd_mv_apk, args.dry_run)
-		logging.info('[%s] Move Game Package, cmd=%s, err=%s' % (status, cmd_mv_apk, err) )
+		logging.info('[%s] mv apk to jenkins workspace, cmd=%s, err=%s' % (status, cmd_mv_apk, err) )
+		if len(err) == 0: 
+			logging.info('well done!')
+		else:
+			logging.error('mission failed.')
 
 
 def clean_and_init_project(app_dir = 'game'):
@@ -173,7 +179,7 @@ def main():
 
 	args = parser.parse_args()
 
-	if args.dry_run: print 'in dry-run mode'
+	if args.dry_run: logging.warn('running in dry-run mode...')
 		
 	if 'apk' == args.cmd:
 		merge_plugin_and_build_apk(args)
@@ -185,5 +191,5 @@ def main():
 	# test()
 
 if __name__ == '__main__':
-	logging.basicConfig(filename='./build.log', level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
+	logging.config.fileConfig("./logging.conf")
 	main()
