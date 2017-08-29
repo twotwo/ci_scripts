@@ -94,8 +94,14 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 
 	status = 'build'
 	(cost, out, err) = Command.excute('android update project -p %s -n %s -t %s' % (apk_dir, apk_name, args.target), args.dry_run)
-	(cost, out, err) = Command.excute('ant -f %s/build.xml clean release' % apk_dir, args.dry_run)
-	logging.info('[%s] Build Project to APK, channel=%s, err=%s' % (status, channel, err) )
+	cmd_build_apk = 'ant -f %s/build.xml clean release' % apk_dir
+	(cost, out, err) = Command.excute(cmd_build_apk, args.dry_run)
+	if len(err) == 0:
+		logging.info('[%s] Build Project to APK, channel=%s' % (status, channel) )
+	else:
+		# add last 15 lines ant build output in log
+		if len(out.split('\n')) > 15: out = '\n'.join(out.split('\n')[-15:])
+		logging.error('Failed to build APK, channel=%s, cmd=%s, ----err-----%s\n------details-----\n%s' % (channel, cmd_build_apk, err, out) )
 	
 	apk_save_to = apk_name+'-p'+revision+'-release_vc'+args.versioncode+ '.apk'
 
@@ -112,10 +118,12 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 		cmd_mv_apk = 'mv %s %s'%(apk_save_to, apk_mv_to)
 		(cost, out, err) = Command.excute(cmd_mv_apk, args.dry_run)
 		logging.info('[%s] mv apk to jenkins workspace, cmd=%s, err=%s' % (status, cmd_mv_apk, err) )
-		if len(err) == 0: 
-			logging.info('well done!')
-		else:
-			logging.error('mission failed.')
+	
+	if len(err) == 0: 
+		logging.info('[%s]mission done!'%channel)
+	else:
+		logging.error('[%s]mission failed.'%channel)
+	logging.info('======================================')
 
 
 def clean_and_init_project(app_dir = 'game'):
@@ -126,7 +134,7 @@ def clean_and_init_project(app_dir = 'game'):
 	plugin_dir = sys.path[0]
 
 	# 清理
-	# libs 7 packages
+	# libs 10 packages
 	Command.excute('rm %s/libs/alipaySdk-*.jar'%app_dir)
 	Command.excute('rm -rf %s/libs/CommonChannel*.jar'%app_dir)
 	Command.excute('rm %s/libs/plugin_base*.jar'%app_dir)
@@ -135,8 +143,8 @@ def clean_and_init_project(app_dir = 'game'):
 	Command.excute('rm %s/libs/FL*.jar'%app_dir) #2 packages
 	Command.excute('rm %s/libs/ok*.jar'%app_dir) #2 packages
 	Command.excute('rm %s/libs/gson*.jar'%app_dir)
+	# remove AndroidManifest.xml
 	Command.excute('rm %s/AndroidManifest.xml'%app_dir)
-
 	# 添加
 	keystore = os.path.join(plugin_dir,'keys.%s/AndroidFLMobile_v2.keystore'%app_name)
 	ant_p = os.path.join(plugin_dir,'keys.%s/ant.properties'%app_name)
@@ -191,5 +199,10 @@ def main():
 	# test()
 
 if __name__ == '__main__':
-	logging.config.fileConfig("./logging.conf")
+	config_file = os.path.join(sys.path[0],'logging.conf')
+	try:
+		logging.config.fileConfig( config_file )
+	except Exception, ex:
+		print 'Failed to load logging config file: ', config_file ,'\nCatch Exception: ', ex
+		exit(-1)
 	main()
