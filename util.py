@@ -458,6 +458,11 @@ def test():
 		logging.debug('pls add svn path')
 
 if __name__ == '__main__':
-	logging.config.fileConfig("./logging.conf")
+	config_file = os.path.join(sys.path[0],'logging.conf')
+	try:
+		logging.config.fileConfig( config_file )
+	except Exception, ex:
+		print 'Failed to load logging config file: ', config_file ,'\nCatch Exception: ', ex
+		exit(-1)
 	# logging.basicConfig(filename='./command.log', level=logging.INFO, format='%(asctime)s [%(name)s] %(levelname)s %(message)s')
 	test()
