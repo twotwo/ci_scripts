@@ -190,11 +190,11 @@ class Command(object):
 		Command.logger.debug(out)
 
 	@staticmethod
-	def xcodebuild_ipa(project, scheme, export, is_clean=False, is_release=True, is_xcpretty=True):
+	def xcodebuild_ipa(project, scheme, export, is_clean=False, is_release=True, is_xcpretty=True, dry_run=False):
 		"""xcode 8.2+出ipa包的执行命令
 		"""
 		if is_clean:
-			(cost, out, err) = Command.excute('xcodebuild clean')
+			(cost, out, err) = Command.excute('xcodebuild clean', dry_run)
 
 		build = 'Debug'
 		if is_release:
@@ -214,7 +214,7 @@ class Command(object):
 			'xcpretty': xcpretty
 		}
 
-		(cost, out, err) = Command.excute(archive_cmd)
+		(cost, out, err) = Command.excute(archive_cmd, dry_run)
 
 		export_cmd='xcodebuild -exportArchive -archivePath %(archive_path)s -exportPath %(export_path)s -exportOptionsPlist package.plist%(xcpretty)s' % {
 			'export_path': export,
@@ -222,7 +222,7 @@ class Command(object):
 			'xcpretty': xcpretty
 		}
 
-		(cost, out, err) = Command.excute(export_cmd)
+		(cost, out, err) = Command.excute(export_cmd, dry_run)
 
 	@staticmethod
 	def merge_img(src_img, width, caption, labels, font='/Library/Fonts/Songti.ttc', clean=True):
