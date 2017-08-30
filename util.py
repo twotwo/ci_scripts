@@ -27,9 +27,9 @@ import platform
 
 
 class Command(object):
-	# config command logger
+	# config Command logger
 	# reffer to http://wiki.li3huo.com/python_lib_logging#Logger_Objects
-	logger = logging.getLogger('command')
+	logger = logging.getLogger('util.Command')
 	# create console handler and set level to debug
 	ch = logging.StreamHandler()
 	ch.setLevel(logging.DEBUG)
@@ -299,7 +299,7 @@ class AgentBuilder(object):
 		self.dry_run = dry_run
 
 		self.build_info = []
-		self.logger = logging.getLogger('agentBuilder')
+		self.logger = logging.getLogger('util.agentBuilder')
 
 		import ConfigParser
 		# config = ConfigParser.RawConfigParser(allow_no_value=True)
@@ -440,12 +440,57 @@ class AgentBuilder(object):
 
 		self.build_info.append('build [%s] jar: %s, apk: %s, revision: %s' % (channel, status_jar, status_apk, revision))
 
+class PlistBuddy(object):
+	"""读取IPA信息，生成ota.plist
+	"""
+	logger = logging.getLogger('util.plistBuddy')
+
+	def __init__(self, base_dir, ipa_name, dry_run=False):
+		self.base_dir = base_dir
+		self.ipa_dir = os.path.join(base_dir, ipa_name)
+		(self.bundle_identifier, self.bundle_version, self.display_name) = self.__print_ipa_info(self.ipa_dir)
+		PlistBuddy.logger.info('Get IPA Info: identifier=%s, version=%s, name=%s'%(self.bundle_identifier, self.bundle_version, self.display_name))
+
+	def __print_ipa_info(self, ipa_dir):
+		excute_pb = '/usr/libexec/PlistBuddy -c'
+		plist_file = 'temp.plist'
+		extract_cmd = 'unzip -p "%s" "**.app/Info.plist" > %s' % (ipa_dir, plist_file)
+		(cost, out, err) = Command.excute(extract_cmd)
+		cmd = '%s "Print CFBundleIdentifier" %s' % (excute_pb, plist_file)
+		(cost, out, err) = Command.excute(cmd)
+		bundle_identifier = out
+		(cost, bundle_version, err) = Command.excute('%s "Print CFBundleShortVersionString" %s' % (excute_pb, plist_file))
+		(cost, display_name, err) = Command.excute('%s "Print CFBundleDisplayName" %s' % (excute_pb, plist_file))
+
+		# delete plist file in ipa
+		os.remove(plist_file)
+		
+		return (bundle_identifier.strip(), bundle_version.strip(), display_name.strip())
+
+	def create_ota_plist(self, https_ipa, https_icon, https_icon_large=None):
+		template_file = os.path.join(sys.path[0],'ota.plist')
+		template_str = open(template_file).readlines()
+		if https_icon_large == None: https_icon_large = https_icon
+		content = ''.join(template_str) % {
+				'https_ipa': https_ipa,
+				'https_icon': https_icon,
+				'https_icon_large': https_icon_large,
+				'bundle_identifier': self.bundle_identifier,
+				'bundle_version': self.bundle_version,
+				'display_name': self.display_name
+				}
+		# PlistBuddy.logger.debug('Content========\n'+content)
+		plist_file =  os.path.splitext(self.ipa_dir)[0]+'.plist'
+		open(plist_file, 'w').write(content)
 
 def test():
 	if Command.isMacSystem(): 
 		logging.info('launch on OS X!')
 	if Command.isLinuxSystem(): logging.info('launch on Linux!')
 	if Command.isWindowsSystem(): logging.info('launch on Windows!')
+	
+	# plistBuddy = PlistBuddy('SDK_V5_V5.1.56(4349).ipa')
+	# plistBuddy.create_ota_plist('ipa','image')
 
 	try:
 		logging.info('current dir git version = '+Command.git_ver("."))
