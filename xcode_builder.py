@@ -6,13 +6,13 @@ Author: liyan
 File: xcode_builder.py
 
 Features:
-1. read_local_version() 获取项目版本号
+1. read_version_from_project() 获取项目版本号
 2. build_xcode_project() 给xcode 项目打 ipa 包
 3. make_ota_link() 生成OTA下载链接
 """
-from util import Command
+from util import Command, PlistBuddy
 
-def read_local_version():
+def read_version_from_project():
 	"""read get version command from a file,
 	excute command to get local project's version
 	"""
@@ -29,24 +29,49 @@ def read_local_version():
 def build_xcode_project(args):
 	"""调用方法: python ~/apk-builder/xcode_builder.py -a ipa --ipa SDK_V5 -p FLGamePlatformDemo -s FLGamePlatformDemoRelease --clean
 工作步骤：
-	1. 获取项目版本号
-	2. 获取当前svn版本号
-	3. 打包
-	4. 重命名ipa为%(export_path)s/%(scheme_name)s_V%(version)s(%(build)s).ipa
+	1. XCode项目打包
+	2. 重命名ipa为 %(ipa_name)s_v%(code_ver)s_r%(repo_ver)s_b%(build_num)s.ipa
+	例如： SDK_V5_v5.1.56_r168988_b62.jar
+	3. create ota plist
 	"""
-	version = read_local_version()
-	print 'ipa file =', args.ipa, 'version =', version
-	# xcodebuild -list
-	Command.xcodebuild_ipa(project=args.project+'.xcodeproj', scheme=args.scheme, export=args.export, is_clean=args.clean, dry_run=args.dry_run)
-	rename_cmd = 'mv %(export_path)s/%(scheme_name)s.ipa %(export_path)s/%(ipa_file)s_V%(version)s\\(%(build)s\\).ipa' % {
+	# 1. build xcode project and export ipa
+	Command.xcodebuild_ipa(project=args.project+'.xcodeproj', 
+							scheme=args.scheme,
+	 						export=args.export, 
+	 						is_clean=args.clean, dry_run=args.dry_run)
+	print 'ipa file name:', args.ipa_name
+	
+	# 2. rename
+	ipa_name = '%(ipa_name)s_v%(code_ver)s_r%(repo_ver)s_b%(build_num)s.ipa' % {
+			'ipa_name': args.ipa_name,
+			'code_ver': read_version_from_project(),
+			'repo_ver': Command.svn_ver('..'),
+			'build_num': os.environ.get('BUILD_NUMBER')
+		}
+	rename_cmd = 'mv %(export_path)s/%(scheme_name)s.ipa %(export_path)s/%(ipa_name)s' % {
 			'scheme_name': args.scheme,
 			'export_path': args.export,
-			'ipa_file': args.ipa,
-			'version': version,
-			'build': Command.svn_ver('..')
+			'ipa_name': ipa_name
 		}
 	(cost, out, err) = Command.excute(rename_cmd, args.dry_run)
-	print err
+	if len(err) == 0: 
+		logging.info('mission done for building [%s]'%ipa_name)
+	else:
+		logging.error('mission failed for building [%s]'%ipa_name)
+	# 3. create ota plist
+	# cp ipa to nginx root path
+	rename_cmd = 'cp %(export_path)s/%(ipa_name)s %(root_path)s' % {
+			'export_path': args.export,
+			'ipa_name': ipa_name,
+			'root_path': args.root_path
+		}
+	(cost, out, err) = Command.excute(rename_cmd, args.dry_run)
+
+	# create plist
+	plistBuddy = PlistBuddy(args.root_path, ipa_name)
+	plistBuddy.create_ota_plist( os.path.join(args.ipa_url, ipa_name), os.path.join(args.ipa_url, 'icon.png'))
+
+
 def make_ota_link():
 	"""生成OTA下载链接
 	"""
@@ -56,8 +81,12 @@ def main():
 	parser = argparse.ArgumentParser(description='Xcode Builder.')
 	parser.add_argument('-a', dest='action', type=str, default='ipa', choices=('test', 'lib', 'ipa'), 
 											help='Action perform')
-	parser.add_argument('--ipa', dest='ipa', type=str, default='',
+	parser.add_argument('--ipa', dest='ipa_name', type=str, default='',
 											help='the IPA file name')
+	parser.add_argument('--root', dest='root_path', type=str, default='.',
+											help='put IPA here to make nginx find it')
+	parser.add_argument('--url', dest='ipa_url', type=str, default='',
+											help='the IPA download links, must be HTTPS!')
 	parser.add_argument('-p', dest='project', type=str, default='Demo.xcodeproj',
 											help='Xcode Project Folder Name')
 	parser.add_argument('-s', dest='scheme', type=str, default='DemoRelease',
@@ -75,7 +104,7 @@ def main():
 
 	if args.dry_run: print 'in dry-run mode'	
 
-	if len(args.ipa) ==0: args.ipa = args.scheme
+	if len(args.ipa_name) ==0: args.ipa_name = args.scheme
 
 	if args.action == 'test':
 		Command.xcodebuild_test(project=args.project+'.xcodeproj', scheme=args.scheme)
