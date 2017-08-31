@@ -67,10 +67,11 @@ def build_xcode_project(args):
 		}
 	(cost, out, err) = Command.excute(rename_cmd, args.dry_run)
 
-	# create plist
 	plistBuddy = PlistBuddy(args.root_path, ipa_name)
+	# create plist
 	plistBuddy.create_ota_plist( os.path.join(args.ipa_url, ipa_name), os.path.join(args.ipa_url, 'icon.png'))
-
+	# create update links to plist
+	plistBuddy.update_index_html(args.ipa_name, args.ipa_url)
 
 def make_ota_link():
 	"""生成OTA下载链接

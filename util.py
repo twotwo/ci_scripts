@@ -12,7 +12,7 @@ Features:
 4. 基于android工具的出apk包的执行命令: Command.
 5. xcode 8.2+出ipa包的执行命令： Command.xcodebuild_ipa(project, scheme, export)
 6. 合并图片工具： merge_img()
-
+7. PlistBuddy: 生成OTA Plist
 """
 
 import argparse
@@ -445,6 +445,30 @@ class PlistBuddy(object):
 	"""
 	logger = logging.getLogger('util.plistBuddy')
 
+	plist_link = """
+<h2 style="font-size:36pt">
+  <a title="iPhone" href="itms-services://?action=download-manifest&url=%s">%s</a>
+</h2>
+"""
+	html_head = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>iOS OTA Installation</title>
+</head>
+<body>
+<h1 style="font-size:40pt">iOS应用OTA安装(%s)<h1/>
+<h2>
+  第一次使用，请安装 <a title="iPhone" href="../ca.crt">SSL 证书安装</a>
+</h2>
+<hr/>
+"""
+	html_tail = """
+</body>
+</html>
+"""
+
 	def __init__(self, base_dir, ipa_name, dry_run=False):
 		self.base_dir = base_dir
 		self.ipa_dir = os.path.join(base_dir, ipa_name)
@@ -482,6 +506,21 @@ class PlistBuddy(object):
 		# PlistBuddy.logger.debug('Content========\n'+content)
 		plist_file =  os.path.splitext(self.ipa_dir)[0]+'.plist'
 		open(plist_file, 'w').write(content)
+
+	def update_index_html(self, ipa_name, url_base):
+		# read .plist on self.base_dir
+		plist_array = []
+		for f in os.listdir(self.base_dir):
+			if f.endswith('.plist') : plist_array.append(f)
+
+		# update content
+		content = PlistBuddy.html_head % ipa_name
+		plist_array.sort()
+		for f in plist_array:
+			content = content + PlistBuddy.plist_link % (os.path.join(url_base, f) , os.path.splitext(f)[0])
+
+		content = content + PlistBuddy.html_tail
+		open(os.path.join(self.base_dir,'index.html'), 'w').write(content)
 
 def test():
 	if Command.isMacSystem(): 
