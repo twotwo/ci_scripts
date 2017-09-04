@@ -515,7 +515,7 @@ class PlistBuddy(object):
 
 		# update content
 		content = PlistBuddy.html_head % ipa_name
-		plist_array.sort()
+		plist_array.sort(reverse=True)
 		for f in plist_array:
 			content = content + PlistBuddy.plist_link % (os.path.join(url_base, f) , os.path.splitext(f)[0])
 
