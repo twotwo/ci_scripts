@@ -91,6 +91,7 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 	# change versionCode&versionName in AndroidManifest.xml
 	cmd = '''sed -i.bak -r '{s/android:versionCode=\s*\"[0-9]{1,}\"/android:versionCode=\"%s\"/g;s/android:versionName=\s*\"[^"]+\"/android:versionName=\"%s\"/g}' %s/AndroidManifest.xml''' % (args.versioncode, args.versionname, apk_dir)
 	(cost, out, err) = Command.excute(cmd)
+	if len(err) >0: logging.warn('[build] Failed to set versionCode & versionName. stderr=%s'% err)
 
 	status = 'build'
 	(cost, out, err) = Command.excute('android update project -p %s -n %s -t %s' % (apk_dir, apk_name, args.target), args.dry_run)
@@ -108,7 +109,8 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 	status = 'cp'
 	cmd_cp_apk = 'cp %s/bin/%s %s'%(apk_dir, apk_name+'-release.apk', apk_save_to)
 	(cost, out, err) = Command.excute(cmd_cp_apk, args.dry_run)
-	logging.info('[%s] cp apk to running_dir, cmd=%s, err=%s' % (status, cmd_cp_apk, err) )
+	logging.info('[%s] cp apk to running_dir, cmd=%s' % (status, cmd_cp_apk) )
+	if len(err) > 0: logging.error('Failed to copy apk. stderr=%s'%err )
 
 	status = 'mv'
 	if None != os.environ.get('BUILD_NUMBER'):
@@ -117,7 +119,8 @@ wget https://github.com/dryes/rarlinux/raw/master/rarlinux-5.2.1.tar.gz
 			os.mkdir(apk_mv_to)
 		cmd_mv_apk = 'mv %s %s'%(apk_save_to, apk_mv_to)
 		(cost, out, err) = Command.excute(cmd_mv_apk, args.dry_run)
-		logging.info('[%s] mv apk to jenkins workspace, cmd=%s, err=%s' % (status, cmd_mv_apk, err) )
+		logging.info('[%s] mv apk to jenkins workspace, cmd=%s' % (status, cmd_mv_apk) )
+		if len(err) > 0: logging.error('Failed to mv apk. stderr=%s'%err )
 	
 	if len(err) == 0: 
 		logging.info('[%s]mission done!'%channel)
