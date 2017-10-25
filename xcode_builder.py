@@ -22,6 +22,7 @@ def read_version_from_project():
 		(cost, out, err) = Command.excute(version_cmd)
 		if len(err) > 0:
 			print version_cmd, '\nerr: ', err
+		else: print '========== load project version:', out.strip('\n')
 		return out.strip('\n')
 	except: 
 		return 'unknown'

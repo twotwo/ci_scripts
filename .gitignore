@@ -1,5 +1,12 @@
 build.log
 
+# Sublime Text Files
+ci_scripts.sublime-project
+ci_scripts.sublime-workspace
+
+# Python Files
+*.pyc
+
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
