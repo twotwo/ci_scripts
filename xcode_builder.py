@@ -46,7 +46,7 @@ def build_xcode_project(args):
 	ipa_name = '%(ipa_name)s_v%(code_ver)s_r%(repo_ver)s_b%(build_num)s.ipa' % {
 			'ipa_name': args.ipa_name,
 			'code_ver': read_version_from_project(),
-			'repo_ver': Command.svn_ver('..'),
+			'repo_ver': Command.svn_ver('..', do_update=False),
 			'build_num': os.environ.get('BUILD_NUMBER')
 		}
 	rename_cmd = 'mv %(export_path)s/%(scheme_name)s.ipa %(export_path)s/%(ipa_name)s' % {

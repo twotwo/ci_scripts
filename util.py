@@ -86,15 +86,17 @@ class Command(object):
 			return out.strip('\n')
 
 	@staticmethod
-	def svn_ver(svn_dir):
+	def svn_ver(svn_dir, do_update=True):
 		"""pull the latest content and get version
 		svn info <path> | grep "Last Changed Rev" | cut -d" " -f4
 		svn info --show-item last-changed-revision <path>
 		"""
-		cmd = 'svn up %s' % svn_dir
-		(cost, out, err) = Command.excute(cmd)
-		if len(err) > 0:
-			Command.logger.error('excute[%s]: %s' %(cmd, err))
+		if do_update:
+			cmd = 'svn up %s' % svn_dir
+			(cost, out, err) = Command.excute(cmd)
+			if len(err) > 0:
+				Command.logger.error('excute[%s]: %s' %(cmd, err))
+
 		cmd = 'svn info --show-item last-changed-revision %s' % svn_dir
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0:
