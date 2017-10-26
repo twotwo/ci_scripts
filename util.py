@@ -55,11 +55,13 @@ class Command(object):
 		return 'Windows' in platform.system()
 
 	@staticmethod
-	def excute(cmd, dry_run=False):
+	def excute(cmd, dry_run=False, stdout=False):
 		start_point = time.time()
 		if dry_run: 
 			Command.logger.warn('dry-run mode on[%s]'%cmd)
 			return (0, cmd, '')
+		elif stdout:
+			Command.logger.debug(cmd+'\nout: '+out.strip('\n'))
 		else:
 			Command.logger.debug(cmd)
 		process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)

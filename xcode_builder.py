@@ -19,10 +19,11 @@ def read_version_from_project():
 	try:
 		# grep MyEditionId ../MyServiceDefine.h |cut -d "\\"" -f 2
 		version_cmd = open('version_cmd').readline().strip()
-		(cost, out, err) = Command.excute(version_cmd)
+		# log stdout
+		(cost, out, err) = Command.excute(version_cmd, stdout=True)
 		if len(err) > 0:
 			print version_cmd, '\nerr: ', err
-		else: print '========== load project version:', out.strip('\n')
+
 		return out.strip('\n')
 	except: 
 		return 'unknown'
