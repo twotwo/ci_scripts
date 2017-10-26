@@ -60,14 +60,14 @@ class Command(object):
 		if dry_run: 
 			Command.logger.warn('dry-run mode on[%s]'%cmd)
 			return (0, cmd, '')
-		elif stdout:
-			Command.logger.debug(cmd+'\nout: '+out.strip('\n'))
 		else:
 			Command.logger.debug(cmd)
 		process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
 		out, err = process.communicate()
 		if len(err) > 0:
 			Command.logger.error('cmd=%s, err=%s' %(cmd, err))
+		elif stdout:
+			Command.logger.debug('out: '+out.strip('\n'))
 		return (time.time()-start_point, out, err)
 
 	@staticmethod
