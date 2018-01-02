@@ -40,6 +40,7 @@ def build_xcode_project(args):
 	Command.xcodebuild_ipa(project=args.project+'.xcodeproj', 
 							scheme=args.scheme,
 	 						export=args.export, 
+	 						plist=args.plist,
 	 						is_clean=args.clean, dry_run=args.dry_run)
 	print 'ipa file name:', args.ipa_name
 	
@@ -47,7 +48,7 @@ def build_xcode_project(args):
 	ipa_name = '%(ipa_name)s_v%(code_ver)s_r%(repo_ver)s_b%(build_num)s.ipa' % {
 			'ipa_name': args.ipa_name,
 			'code_ver': read_version_from_project(),
-			'repo_ver': Command.svn_ver('..', do_update=False),
+			'repo_ver': Command.git_ver('..', do_update=False) if args.git else Command.svn_ver('..', do_update=False),
 			'build_num': os.environ.get('BUILD_NUMBER')
 		}
 	rename_cmd = 'mv %(export_path)s/%(scheme_name)s.ipa %(export_path)s/%(ipa_name)s' % {
@@ -96,9 +97,14 @@ def main():
 											help='Xcode Project Scheme')
 	parser.add_argument('-e', dest='export', type=str, default='./build',
 											help='Build IPA to this directory')
-	parser.add_argument('--clean', dest='clean', action='store_false',
+	parser.add_argument('-plist', dest='plist', type=str, default='package.plist',
+											help='exportOptionsPlist when exportArchive')
+	parser.add_argument('--git', dest='git', action='store_true',
+											help='SCM type, default is Subversion')
+	parser.set_defaults(git=False)
+	parser.add_argument('--clean', dest='clean', action='store_true',
 											help='Remove files in CONFIGURATION_BUILD_DIR & CONFIGURATION_TEMP_DIR')
-	parser.set_defaults(clean=True)
+	parser.set_defaults(clean=False)
 	parser.add_argument('--dry-run', dest='dry_run', action='store_true',
 											help='Dry Run Mode: do not excute time-consuming operation')
 	parser.set_defaults(dry_run=False)

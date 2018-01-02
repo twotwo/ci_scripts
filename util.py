@@ -71,14 +71,16 @@ class Command(object):
 		return (time.time()-start_point, out, err)
 
 	@staticmethod
-	def git_ver(git_dir):
+	def git_ver(git_dir, do_update=True):
 		"""pull the latest content and get version
 		git revision cmd: git rev-list --count HEAD
 		"""
-		cmd = 'git -C %s pull' % git_dir
-		(cost, out, err) = Command.excute(cmd)
-		if len(err) > 0:
-			Command.logger.error('excute[%s]: %s' %(cmd, err))
+		if do_update:
+			cmd = 'git -C %s pull' % git_dir
+			(cost, out, err) = Command.excute(cmd)
+			if len(err) > 0:
+				Command.logger.error('excute[%s]: %s' %(cmd, err))
+
 		cmd = 'git -C %s rev-list --count HEAD' % git_dir
 		(cost, out, err) = Command.excute(cmd)
 		if len(err) > 0:
@@ -194,8 +196,10 @@ class Command(object):
 		Command.logger.debug(out)
 
 	@staticmethod
-	def xcodebuild_ipa(project, scheme, export, is_clean=False, is_release=True, is_xcpretty=True, dry_run=False):
+	def xcodebuild_ipa(project, scheme, export, plist='package.plist', is_clean=False, is_release=True, is_xcpretty=False, dry_run=False):
 		"""xcode 8.2+出ipa包的执行命令
+export	- exportPath
+plist	- exportOptionsPlist
 		"""
 		if is_clean:
 			(cost, out, err) = Command.excute('xcodebuild clean', dry_run)
